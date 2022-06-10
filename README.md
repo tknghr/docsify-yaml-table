@@ -43,8 +43,6 @@ Rendered like below.
 
 ### Header options
 
-Available keys:
-
 | Key       | Description   |
 |-----------|---------------|
 | label     | Header label. |
@@ -84,9 +82,9 @@ rows:
 ```
 ~~~
 
-| #  | ID | Description | HTML   |
-|----|----|-------------|--------|
-| 11 | a  | AAA         | Hello! |
-| 12 | b  | You can write<br>multiple lines. | <b>Bold!</b> |
-| 13 | c  | Line break can be replaced to space. | <i>Itally</i> |
+| #  | Description | HTML   |
+|----|-------------|--------|
+| 11 | AAA         | Hello! |
+| 12 | You can write<br>multiple lines. | <b>Bold!</b> |
+| 13 | Line break can be replaced to space. | <i>Itally</i> |
 
