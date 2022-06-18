@@ -54,6 +54,7 @@ Rendered like below.
 | raw       | Render as HTML. Not recommend to enable.<br>default: `false` |
 | type      | Set `autonumber` for auto numbering column.<br>`source` key will be ignored. |
 | startFrom | Starting number for auto numbering.<br>default: `1` |
+| align     | Text alignment. Available values are `left`, `center`, `right`. |
 
 ## Example
 
@@ -68,27 +69,33 @@ headers:
 - label: HTML
   source: html
   raw: true
+- label: Number
+  source: num
+  align: right
 
 rows:
 - id: a
   note: AAA
   html: Hello!
+  num: 1
 - id: b
   note: |
     You can write
     multiple lines.
   html: <b>Bold!</b>
+  num: 100
 - id: c
   note: >
     Line break can be
     replaced to space.
   html: <i>Itally</i>
+  num: 12,345
 ```
 ~~~
 
-| #  | Description | HTML   |
-|----|-------------|--------|
-| 11 | AAA         | Hello! |
-| 12 | You can write<br>multiple lines. | <b>Bold!</b> |
-| 13 | Line break can be replaced to space. | <i>Itally</i> |
+| #  | Description | HTML   | Number |
+|----|-------------|--------|-------:|
+| 11 | AAA         | Hello! | 1      |
+| 12 | You can write<br>multiple lines. | <b>Bold!</b> | 100 |
+| 13 | Line break can be replaced to space. | <i>Itally</i> | 12,345 |
 

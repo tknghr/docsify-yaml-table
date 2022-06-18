@@ -73,6 +73,8 @@ const plugin = (hook, vm) => {
     let rowContents = dom.create('tr')
     data.headers.map(head => {
       let cell = dom.create('td')
+      if (head.align)
+        cell.style.textAlign = head.align
 
       // Raw column: rendering as HTML (not secure)
       if (head.raw) {
