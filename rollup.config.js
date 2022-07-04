@@ -1,8 +1,11 @@
+import commonjs from '@rollup/plugin-commonjs'
+import json from '@rollup/plugin-json'
+import resolve, { nodeResolve } from '@rollup/plugin-node-resolve'
+import nodePolyfills from 'rollup-plugin-polyfill-node'
 import { terser } from 'rollup-plugin-terser'
-import resolve from '@rollup/plugin-node-resolve'
 
 export default {
-  input: 'src/docsify-yaml-table.js',
+  input: 'src/index.js',
   output: [
     {
       file: 'dist/docsify-yaml-table.js',
@@ -17,6 +20,10 @@ export default {
     }
   ],
   plugins: [
+    nodeResolve({browser: true}),
+    commonjs(),
+    json(),
     resolve(),
+    nodePolyfills(),
   ]
 }
