@@ -11,7 +11,7 @@ Insert script into your docsify `index.html`.
 
 ```html
 <!-- jsDelivr -->
-<script src="https://cdn.jsdelivr.net/gh/tknghr/docsify-yaml-table/dist/docsify-yaml-table.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/tknghr/docsify-yaml-table@v0.2.0/dist/docsify-yaml-table.min.js"></script>
 
 <!-- or locally -->
 <script src="path/to/docsify-yaml-table.min.js"></script>
