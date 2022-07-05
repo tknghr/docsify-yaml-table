@@ -62,6 +62,8 @@ function generateHeader(headers) {
       header.label = header.label || HEADER_AUTONUMBER
       header.startFrom = key.startFrom || 1
       header.__autonumber__ = header.startFrom
+      // default align is right
+      header.align = header.align || 'right'
     }
 
     // Remove undefined keys

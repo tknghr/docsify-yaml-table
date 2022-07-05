@@ -95,7 +95,7 @@ test('should increment autonumber.', () => {
   const source = {
     headers: [
       { ...defaultHeader, type: 'autonumber' },
-      { ...defaultHeader, type: 'autonumber', label: 'No', startFrom: 10 },
+      { ...defaultHeader, type: 'autonumber', label: 'No', startFrom: 10, align: 'left' },
     ],
     rows: [
       { },
@@ -106,9 +106,9 @@ test('should increment autonumber.', () => {
   expect(parseTable(source)).toMatchObject({
     headers: [
       // Should be set default label and startFrom, __autonumber__ should be next count
-      { ...defaultHeader, type: 'autonumber', label: '#', startFrom: 1, __autonumber__: 4 },
+      { ...defaultHeader, type: 'autonumber', label: '#', startFrom: 1, __autonumber__: 4, align: 'right' },
       // Should be used provided label and startFrom, __autonumber__ should be next count
-      { ...defaultHeader, type: 'autonumber', label: 'No', startFrom: 10, __autonumber__: 13 },
+      { ...defaultHeader, type: 'autonumber', label: 'No', startFrom: 10, __autonumber__: 13, align: 'left' },
     ],
     rows: [
       [{content:"1"}, {content:"10"}],
