@@ -5,28 +5,19 @@ import { convert2table } from './convert2table'
 const LANG = 'yamltable'
 
 const docsifyYamlTablePlugin = (hook, vm) => {
-  const SELECTOR = `pre[data-lang="${LANG}"]`
+  hook.beforeEach(function(content) {
+    // get yamltable code blocks
+    var regexp = new RegExp("^(```|~~~)(?:" + LANG + ")?\\n([\\s\\S]+?)\\1", "gm")
 
-  hook.afterEach(function (content) {
-    var dom = window.Docsify.dom
-    var $ = dom.create('span', content)
-
-    if (!$.querySelectorAll) {
-      return content
-    }
-
-    (dom.findAll($, SELECTOR) || []).forEach(function (element) {
-      var convertedTable = convert2table(element.innerText)
-      if (convertedTable) {
-        var container = dom.create('div')
-        container.setAttribute('data-lang', LANG)
-        container.innerHTML = convertedTable
-        element.parentNode.replaceChild(container, element)
-      }
+    // replace matched blocks
+    return content.replace(regexp, function(matched, capture1, capture2){
+      // matched is matched string. will return this when failing to convert.
+      // capture1 is ``` or ~~~, not used.
+      // capture2 is content of the matched code block.
+      var convertedTable = convert2table(capture2)
+      return !!convertedTable ? convertedTable : matched
     })
-
-    return $.innerHTML
-  })
+  });
 }
 
 window.$docsify = window.$docsify || {}

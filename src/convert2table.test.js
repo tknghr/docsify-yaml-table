@@ -1,16 +1,6 @@
 'use strict';
-import {jest} from '@jest/globals'
-
-const parseTableMock = jest.fn()
-jest.mock('./parse-table', () => ({
-  parseTable: parseTableMock
-}))
 
 import { convert2table } from './convert2table'
-
-test('returns null when empty source', () => {
-  expect(convert2table('')).toBeNull()
-})
 
 test('minimum example', () => {
   const yaml = `
@@ -21,13 +11,27 @@ test('minimum example', () => {
   - col1: AAA
   - col1: BBB
   `
-  expect(convert2table(yaml)).toBe(
-  "<table>"
-  + "<thead><tr><th>test</th></tr></thead>"
-  + "<tr><td>AAA</td></tr>"
-  + "<tr><td>BBB</td></tr>"
-  + "</table>"
-  )
+  expect(convert2table(yaml)).toBe([
+    "| test |",
+    "|----|",
+    "| AAA |",
+    "| BBB |",
+  ].join('\n'))
+})
+
+test('escape pipe', () => {
+  const yaml = `
+  headers:
+  - label: test
+    source: col1
+  rows:
+  - col1: include|pipe
+  `
+  expect(convert2table(yaml)).toBe([
+    "| test |",
+    "|----|",
+    "| include\\|pipe |",
+  ].join('\n'))
 })
 
 test('cell text align', () => {
@@ -45,20 +49,11 @@ test('cell text align', () => {
   rows:
   - col1: AAA
   `
-  expect(convert2table(yaml)).toBe(
-  "<table>"
-  + "<thead><tr>"
-  + "<th>left</th>"
-  + "<th>center</th>"
-  + "<th>right</th>"
-  + "</tr></thead>"
-  + "<tr>"
-  + "<td style=\"text-align:left\">AAA</td>"
-  + "<td style=\"text-align:center\">AAA</td>"
-  + "<td style=\"text-align:right\">AAA</td>"
-  + "</tr>"
-  + "</table>"
-  )
+  expect(convert2table(yaml)).toBe([
+    "| left | center | right |",
+    "|:---|:--:|---:|",
+    "| AAA | AAA | AAA |",
+  ].join('\n'))
 })
 
 test('line breaks', () => {
@@ -80,13 +75,12 @@ test('line breaks', () => {
       line break is replaced to space
       but keep final line break.
   `
-  expect(convert2table(yaml)).toBe(
-  "<table>"
-  + "<thead><tr><th>test</th></tr></thead>"
-  + "<tr><td>multiple line<br/>should be kept.<br/></td></tr>"
-  + "<tr><td>multiple line<br/>should be kept.</td></tr>"
-  + "<tr><td>line break is replaced to space but keep final line break.<br/></td></tr>"
-  + "<tr><td>line break is replaced to space but keep final line break.</td></tr>"
-  + "</table>"
-  )
+  expect(convert2table(yaml)).toBe([
+    "| test |",
+    "|----|",
+    "| multiple line<br/>should be kept.<br/> |",
+    "| multiple line<br/>should be kept. |",
+    "| line break is replaced to space but keep final line break.<br/> |",
+    "| line break is replaced to space but keep final line break. |",
+  ].join('\n'))
 })

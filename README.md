@@ -1,6 +1,6 @@
 # Docsify YAML Table Plugin
 
-Plugin to render table by yaml.
+Plugin to render table by yaml for [Docsify](https://github.com/docsifyjs/docsify).
 
 This is NOT standard markdown syntax, and this works only on docsify.
 You will need to convert to standard table syntax when you want to migrate to another documentation tool.
@@ -11,7 +11,7 @@ Insert script into your docsify `index.html`.
 
 ```html
 <!-- jsDelivr -->
-<script src="https://cdn.jsdelivr.net/gh/tknghr/docsify-yaml-table@v0.2.0/dist/docsify-yaml-table.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/tknghr/docsify-yaml-table@v0.3.0/dist/docsify-yaml-table.min.js"></script>
 
 <!-- or locally -->
 <script src="path/to/docsify-yaml-table.min.js"></script>

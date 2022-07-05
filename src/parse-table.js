@@ -28,7 +28,7 @@ const HEADER_AUTONUMBER = '#'
 /**
  * Create table object from source.
  * @param {Object} source Table source.
- * @returns {{ headers: Header[], Rows: Row[]}} Table object.
+ * @returns {{ headers: Header[], rows: Row[]}} Table object.
  */
 export const parseTable = (source) => {
   const table = {

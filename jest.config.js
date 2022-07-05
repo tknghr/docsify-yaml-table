@@ -1,7 +1,10 @@
 /** @type {import('@jest/types').Config.InitialOptions} */
 const config = {
   verbose: true,
-  transform: {}
+  transform: {},
+  globals: {
+    window: {}
+  }
 };
   
 export default config;

@@ -19931,7 +19931,7 @@
   /**
    * Create table object from source.
    * @param {Object} source Table source.
-   * @returns {{ headers: Header[], Rows: Row[]}} Table object.
+   * @returns {{ headers: Header[], rows: Row[]}} Table object.
    */
   const parseTable = (source) => {
     const table = {
@@ -20020,7 +20020,13 @@
   }
 
   const convert2table = (yaml) => {
-    let data = jsYaml.load(yaml);
+    let data;
+    try {
+      data = jsYaml.load(yaml);
+    } catch (err) {
+      console.error(err);
+      return null
+    }
     // Most markdown parser requires header.
     if (!data || !data.headers || !data.rows) {
       return null
@@ -20029,48 +20035,38 @@
     const tableData = parseTable(data);
     if (tableData.headers.length === 0) return null
 
-    return '<table>'
-      // header
-      + `<thead><tr>${tableData.headers.map(h =>
-        `<th>${h.label}</th>`
-      ).join('')}</tr></thead>`
+    // header
+    return `| ${tableData.headers.map(h => h.label).join(' | ')} |\n`
+      // separator
+      + `|${tableData.headers.map(h =>
+      h.align === 'left' ? ':---'
+      : h.align === 'center' ? ':--:'
+      : h.align === 'right' ? '---:'
+      : '----'
+    ).join('|')}|\n`
       // rows
       + tableData.rows.map(r => 
-          `<tr>${
-          r.map(cell =>
-            `<td${!!cell.align ? ` style="text-align:${cell.align}"` : ''}>`
-              + `${cell.content.replaceAll('\n','<br/>')}`
-              + `</td>`
-          ).join('')
-        }</tr>`
-        ).join('')
-      + '</table>'
+          `| ${r.map(cell =>
+          cell.content.replaceAll('\n','<br/>').replaceAll('|', '\\|')
+        ).join(' | ')} |`
+        ).join('\n')
   };
 
   const LANG = 'yamltable';
 
   const docsifyYamlTablePlugin = (hook, vm) => {
-    const SELECTOR = `pre[data-lang="${LANG}"]`;
+    hook.beforeEach(function(content) {
+      // get yamltable code blocks
+      var regexp = new RegExp("^(```|~~~)(?:" + LANG + ")?\\n([\\s\\S]+?)\\1", "gm");
 
-    hook.afterEach(function (content) {
-      var dom = window.Docsify.dom;
-      var $ = dom.create('span', content);
-
-      if (!$.querySelectorAll) {
-        return content
-      }
-
-      (dom.findAll($, SELECTOR) || []).forEach(function (element) {
-        var convertedTable = convert2table(element.innerText);
-        if (convertedTable) {
-          var container = dom.create('div');
-          container.setAttribute('data-lang', LANG);
-          container.innerHTML = convertedTable;
-          element.parentNode.replaceChild(container, element);
-        }
-      });
-
-      return $.innerHTML
+      // replace matched blocks
+      return content.replace(regexp, function(matched, capture1, capture2){
+        // matched is matched string. will return this when failing to convert.
+        // capture1 is ``` or ~~~, not used.
+        // capture2 is content of the matched code block.
+        var convertedTable = convert2table(capture2);
+        return !!convertedTable ? convertedTable : matched
+      })
     });
   };
 
