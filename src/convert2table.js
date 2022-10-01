@@ -11,9 +11,15 @@ export const convert2table = (yaml) => {
     console.error(err)
     return null
   }
-  // Most markdown parser requires header.
-  if (!data || !data.headers || !data.rows) {
+  if (!data || !data.rows) {
     return null
+  }
+  if (!data.headers) {
+    // Use the first row's property name as header
+    data.headers = Object.keys(data.rows[0]).map(key => ({
+      label: key,
+      source: key,
+    }))
   }
 
   const tableData = parseTable(data)

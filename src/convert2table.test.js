@@ -4,6 +4,25 @@ import { convert2table } from './convert2table'
 
 test('minimum example', () => {
   const yaml = `
+  rows:
+  - id: a
+    note: AAA
+  - id: b
+    note: BBB
+  - id: c
+    note: CCC
+  `
+  expect(convert2table(yaml)).toBe([
+    "| id | note |",
+    "|----|----|",
+    "| a | AAA |",
+    "| b | BBB |",
+    "| c | CCC |",
+  ].join('\n'))
+})
+
+test('standard example', () => {
+  const yaml = `
   headers:
   - label: test
     source: col1
@@ -82,5 +101,47 @@ test('line breaks', () => {
     "| multiple line<br/>should be kept. |",
     "| line break is replaced to space but keep final line break.<br/> |",
     "| line break is replaced to space but keep final line break. |",
+  ].join('\n'))
+})
+
+test('readme example', () => {
+  const yaml = `
+  headers:
+  - label: "#"
+    type: autonumber
+    startFrom: 9
+  - label: Description
+    source: note
+  - label: HTML
+    source: html
+    allowHtmlContent: true
+  - label: Number
+    source: num
+    align: right
+  
+  rows:
+  - id: a
+    note: AAA
+    html: Hello!
+    num: 1
+  - id: b
+    note: |
+      You can write
+      multiple lines.
+    html: <b>Bold!</b>
+    num: 100
+  - id: c
+    note: >
+      Line break can be
+      replaced to space.
+    html: <i>Itally</i>
+    num: 12,345
+  `
+  expect(convert2table(yaml)).toBe([
+    "| # | Description | HTML | Number |",
+    "|---:|----|----|---:|",
+    "| 9 | AAA | Hello! | 1 |",
+    "| 10 | You can write<br/>multiple lines.<br/> | <b>Bold!</b> | 100 |",
+    "| 11 | Line break can be replaced to space.<br/> | <i>Itally</i> | 12,345 |",
   ].join('\n'))
 })

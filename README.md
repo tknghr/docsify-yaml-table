@@ -11,7 +11,7 @@ Insert script into your docsify `index.html`.
 
 ```html
 <!-- jsDelivr -->
-<script src="https://cdn.jsdelivr.net/gh/tknghr/docsify-yaml-table@v0.3.2/dist/docsify-yaml-table.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/tknghr/docsify-yaml-table@v0.4.0/dist/docsify-yaml-table.min.js"></script>
 
 <!-- or locally -->
 <script src="path/to/docsify-yaml-table.min.js"></script>
@@ -21,12 +21,6 @@ Insert script into your docsify `index.html`.
 
 ~~~
 ```yamltable
-headers:
-- label: ID
-  source: id
-- label: Description
-  source: note
-
 rows:
 - id: a
   note: AAA
@@ -39,7 +33,7 @@ rows:
 
 Rendered like below.
 
-| ID | Description |
+| id | note        |
 |----|-------------|
 | a  | AAA         |
 | b  | BBB         |
@@ -67,7 +61,7 @@ Rendered like below.
 headers:
 - label: "#"
   type: autonumber
-  startFrom: 11
+  startFrom: 9
 - label: Description
   source: note
 - label: HTML
@@ -98,8 +92,8 @@ rows:
 ~~~
 
 | #  | Description | HTML   | Number |
-|----|-------------|--------|-------:|
-| 11 | AAA         | Hello! | 1      |
-| 12 | You can write<br>multiple lines. | <b>Bold!</b> | 100 |
-| 13 | Line break can be replaced to space. | <i>Itally</i> | 12,345 |
+|---:|-------------|--------|-------:|
+| 9  | AAA         | Hello! | 1      |
+| 10 | You can write<br>multiple lines. | <b>Bold!</b> | 100 |
+| 11 | Line break can be replaced to space. | <i>Itally</i> | 12,345 |
 
