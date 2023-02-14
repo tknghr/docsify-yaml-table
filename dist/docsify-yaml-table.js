@@ -3852,9 +3852,16 @@
   var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
   function getAugmentedNamespace(n) {
+    if (n.__esModule) return n;
     var f = n.default;
   	if (typeof f == "function") {
-  		var a = function () {
+  		var a = function a () {
+  			if (this instanceof a) {
+  				var args = [null];
+  				args.push.apply(args, arguments);
+  				var Ctor = Function.bind.apply(f, args);
+  				return new Ctor();
+  			}
   			return f.apply(this, arguments);
   		};
   		a.prototype = f.prototype;
@@ -5620,7 +5627,7 @@
   	exports.Doctype = ElementType.Doctype;
   } (lib$3));
 
-  var node = {};
+  var node$1 = {};
 
   var __extends = (commonjsGlobal && commonjsGlobal.__extends) || (function () {
       var extendStatics = function (d, b) {
@@ -5648,8 +5655,8 @@
       };
       return __assign$1.apply(this, arguments);
   };
-  Object.defineProperty(node, "__esModule", { value: true });
-  node.cloneNode = node.hasChildren = node.isDocument = node.isDirective = node.isComment = node.isText = node.isCDATA = node.isTag = node.Element = node.Document = node.CDATA = node.NodeWithChildren = node.ProcessingInstruction = node.Comment = node.Text = node.DataNode = node.Node = void 0;
+  Object.defineProperty(node$1, "__esModule", { value: true });
+  node$1.cloneNode = node$1.hasChildren = node$1.isDocument = node$1.isDirective = node$1.isComment = node$1.isText = node$1.isCDATA = node$1.isTag = node$1.Element = node$1.Document = node$1.CDATA = node$1.NodeWithChildren = node$1.ProcessingInstruction = node$1.Comment = node$1.Text = node$1.DataNode = node$1.Node = void 0;
   var domelementtype_1$1 = lib$3;
   /**
    * This object will be used as the prototype for Nodes when creating a
@@ -5723,7 +5730,7 @@
       };
       return Node;
   }());
-  node.Node = Node$5;
+  node$1.Node = Node$5;
   /**
    * A node that contains some data.
    */
@@ -5753,7 +5760,7 @@
       });
       return DataNode;
   }(Node$5));
-  node.DataNode = DataNode;
+  node$1.DataNode = DataNode;
   /**
    * Text within the document.
    */
@@ -5773,7 +5780,7 @@
       });
       return Text;
   }(DataNode));
-  node.Text = Text;
+  node$1.Text = Text;
   /**
    * Comments within the document.
    */
@@ -5793,7 +5800,7 @@
       });
       return Comment;
   }(DataNode));
-  node.Comment = Comment$5;
+  node$1.Comment = Comment$5;
   /**
    * Processing instructions, including doc types.
    */
@@ -5814,7 +5821,7 @@
       });
       return ProcessingInstruction;
   }(DataNode));
-  node.ProcessingInstruction = ProcessingInstruction;
+  node$1.ProcessingInstruction = ProcessingInstruction;
   /**
    * A `Node` that can have children.
    */
@@ -5864,7 +5871,7 @@
       });
       return NodeWithChildren;
   }(Node$5));
-  node.NodeWithChildren = NodeWithChildren;
+  node$1.NodeWithChildren = NodeWithChildren;
   var CDATA = /** @class */ (function (_super) {
       __extends(CDATA, _super);
       function CDATA() {
@@ -5881,7 +5888,7 @@
       });
       return CDATA;
   }(NodeWithChildren));
-  node.CDATA = CDATA;
+  node$1.CDATA = CDATA;
   /**
    * The root node of the document.
    */
@@ -5901,7 +5908,7 @@
       });
       return Document;
   }(NodeWithChildren));
-  node.Document = Document$4;
+  node$1.Document = Document$4;
   /**
    * An element within the DOM.
    */
@@ -5965,7 +5972,7 @@
       });
       return Element;
   }(NodeWithChildren));
-  node.Element = Element;
+  node$1.Element = Element;
   /**
    * @param node Node to check.
    * @returns `true` if the node is a `Element`, `false` otherwise.
@@ -5973,7 +5980,7 @@
   function isTag(node) {
       return (0, domelementtype_1$1.isTag)(node);
   }
-  node.isTag = isTag;
+  node$1.isTag = isTag;
   /**
    * @param node Node to check.
    * @returns `true` if the node has the type `CDATA`, `false` otherwise.
@@ -5981,7 +5988,7 @@
   function isCDATA(node) {
       return node.type === domelementtype_1$1.ElementType.CDATA;
   }
-  node.isCDATA = isCDATA;
+  node$1.isCDATA = isCDATA;
   /**
    * @param node Node to check.
    * @returns `true` if the node has the type `Text`, `false` otherwise.
@@ -5989,7 +5996,7 @@
   function isText(node) {
       return node.type === domelementtype_1$1.ElementType.Text;
   }
-  node.isText = isText;
+  node$1.isText = isText;
   /**
    * @param node Node to check.
    * @returns `true` if the node has the type `Comment`, `false` otherwise.
@@ -5997,7 +6004,7 @@
   function isComment(node) {
       return node.type === domelementtype_1$1.ElementType.Comment;
   }
-  node.isComment = isComment;
+  node$1.isComment = isComment;
   /**
    * @param node Node to check.
    * @returns `true` if the node has the type `ProcessingInstruction`, `false` otherwise.
@@ -6005,7 +6012,7 @@
   function isDirective(node) {
       return node.type === domelementtype_1$1.ElementType.Directive;
   }
-  node.isDirective = isDirective;
+  node$1.isDirective = isDirective;
   /**
    * @param node Node to check.
    * @returns `true` if the node has the type `ProcessingInstruction`, `false` otherwise.
@@ -6013,7 +6020,7 @@
   function isDocument(node) {
       return node.type === domelementtype_1$1.ElementType.Root;
   }
-  node.isDocument = isDocument;
+  node$1.isDocument = isDocument;
   /**
    * @param node Node to check.
    * @returns `true` if the node has children, `false` otherwise.
@@ -6021,7 +6028,7 @@
   function hasChildren(node) {
       return Object.prototype.hasOwnProperty.call(node, "children");
   }
-  node.hasChildren = hasChildren;
+  node$1.hasChildren = hasChildren;
   /**
    * Clone a node, and optionally its children.
    *
@@ -6086,7 +6093,7 @@
       }
       return result;
   }
-  node.cloneNode = cloneNode$1;
+  node$1.cloneNode = cloneNode$1;
   function cloneChildren(childs) {
       var children = childs.map(function (child) { return cloneNode$1(child, true); });
       for (var i = 1; i < children.length; i++) {
@@ -6114,8 +6121,8 @@
   	Object.defineProperty(exports, "__esModule", { value: true });
   	exports.DomHandler = void 0;
   	var domelementtype_1 = lib$3;
-  	var node_js_1 = node;
-  	__exportStar(node, exports);
+  	var node_js_1 = node$1;
+  	__exportStar(node$1, exports);
   	// Default options
   	var defaultOpts = {
   	    withStartIndices: false,
@@ -8225,7 +8232,11 @@
 
   var cjs = deepmerge_1;
 
-  var parseSrcset$1 = {exports: {}};
+  var parseSrcsetExports = {};
+  var parseSrcset$1 = {
+    get exports(){ return parseSrcsetExports; },
+    set exports(v){ parseSrcsetExports = v; },
+  };
 
   /**
    * Srcset Parser
@@ -8780,27 +8791,31 @@
     uptime: uptime
   };
 
-  var picocolors_browser = {exports: {}};
+  var picocolors_browserExports = {};
+  var picocolors_browser = {
+    get exports(){ return picocolors_browserExports; },
+    set exports(v){ picocolors_browserExports = v; },
+  };
 
   var x=String;
   var create=function() {return {isColorSupported:false,reset:x,bold:x,dim:x,italic:x,underline:x,inverse:x,hidden:x,strikethrough:x,black:x,red:x,green:x,yellow:x,blue:x,magenta:x,cyan:x,white:x,gray:x,bgBlack:x,bgRed:x,bgGreen:x,bgYellow:x,bgBlue:x,bgMagenta:x,bgCyan:x,bgWhite:x}};
   picocolors_browser.exports=create();
-  picocolors_browser.exports.createColors = create;
+  picocolors_browserExports.createColors = create;
 
   var _nodeResolve_empty = {};
 
   var _nodeResolve_empty$1 = /*#__PURE__*/Object.freeze({
     __proto__: null,
-    'default': _nodeResolve_empty
+    default: _nodeResolve_empty
   });
 
   var require$$0 = /*@__PURE__*/getAugmentedNamespace(_nodeResolve_empty$1);
 
-  let pico = picocolors_browser.exports;
+  let pico = picocolors_browserExports;
 
   let terminalHighlight$1 = require$$0;
 
-  class CssSyntaxError$3 extends Error {
+  let CssSyntaxError$3 = class CssSyntaxError extends Error {
     constructor(message, line, column, source, file, plugin) {
       super(message);
       this.name = 'CssSyntaxError';
@@ -8830,7 +8845,7 @@
       this.setMessage();
 
       if (Error.captureStackTrace) {
-        Error.captureStackTrace(this, CssSyntaxError$3);
+        Error.captureStackTrace(this, CssSyntaxError);
       }
     }
 
@@ -8890,7 +8905,7 @@
       }
       return this.name + ': ' + this.message + code
     }
-  }
+  };
 
   var cssSyntaxError = CssSyntaxError$3;
   CssSyntaxError$3.default = CssSyntaxError$3;
@@ -8920,7 +8935,7 @@
     return str[0].toUpperCase() + str.slice(1)
   }
 
-  class Stringifier$2 {
+  let Stringifier$2 = class Stringifier {
     constructor(builder) {
       this.builder = builder;
     }
@@ -9248,7 +9263,7 @@
 
       return value
     }
-  }
+  };
 
   var stringifier = Stringifier$2;
   Stringifier$2.default = Stringifier$2;
@@ -9295,7 +9310,7 @@
     return cloned
   }
 
-  class Node$4 {
+  let Node$4 = class Node {
     constructor(defaults = {}) {
       this.raws = {};
       this[isClean$2] = false;
@@ -9636,14 +9651,14 @@
     get proxyOf() {
       return this
     }
-  }
+  };
 
-  var node_1 = Node$4;
+  var node = Node$4;
   Node$4.default = Node$4;
 
-  let Node$3 = node_1;
+  let Node$3 = node;
 
-  class Declaration$4 extends Node$3 {
+  let Declaration$4 = class Declaration extends Node$3 {
     constructor(defaults) {
       if (
         defaults &&
@@ -9659,7 +9674,7 @@
     get variable() {
       return this.prop.startsWith('--') || this.prop[0] === '$'
     }
-  }
+  };
 
   var declaration = Declaration$4;
   Declaration$4.default = Declaration$4;
@@ -9998,6 +10013,8 @@
   if (Buffer.TYPED_ARRAY_SUPPORT) {
     Buffer.prototype.__proto__ = Uint8Array.prototype;
     Buffer.__proto__ = Uint8Array;
+    if (typeof Symbol !== 'undefined' && Symbol.species &&
+        Buffer[Symbol.species] === Buffer) ;
   }
 
   function assertSize (size) {
@@ -11872,17 +11889,17 @@
 
   var _polyfillNode_path$1 = /*#__PURE__*/Object.freeze({
     __proto__: null,
-    resolve: resolve$2,
-    normalize: normalize,
-    isAbsolute: isAbsolute$1,
-    join: join$1,
-    relative: relative$1,
-    sep: sep$1,
+    basename: basename,
+    default: _polyfillNode_path,
     delimiter: delimiter$1,
     dirname: dirname$2,
-    basename: basename,
     extname: extname,
-    'default': _polyfillNode_path
+    isAbsolute: isAbsolute$1,
+    join: join$1,
+    normalize: normalize,
+    relative: relative$1,
+    resolve: resolve$2,
+    sep: sep$1
   });
 
   var require$$1$1 = /*@__PURE__*/getAugmentedNamespace(_polyfillNode_path$1);
@@ -12332,14 +12349,20 @@
     return obj;
   }
 
-  // Copyright Joyent, Inc. and other Node contributors.
+  // WHATWG API
+  const URL$1 = global$1.URL;
+  const URLSearchParams = global$1.URLSearchParams;
   var _polyfillNode_url = {
     parse: urlParse,
     resolve: urlResolve,
     resolveObject: urlResolveObject,
     fileURLToPath: urlFileURLToPath,
     format: urlFormat,
-    Url: Url
+    Url: Url,
+
+    // WHATWG API
+    URL: URL$1,
+    URLSearchParams,  
   };
   function Url() {
     this.protocol = null;
@@ -13076,13 +13099,15 @@
 
   var _polyfillNode_url$1 = /*#__PURE__*/Object.freeze({
     __proto__: null,
-    parse: urlParse,
-    resolve: urlResolve,
-    resolveObject: urlResolveObject,
+    URL: URL$1,
+    URLSearchParams: URLSearchParams,
+    Url: Url,
+    default: _polyfillNode_url,
     fileURLToPath: urlFileURLToPath,
     format: urlFormat,
-    'default': _polyfillNode_url,
-    Url: Url
+    parse: urlParse,
+    resolve: urlResolve,
+    resolveObject: urlResolveObject
   });
 
   var require$$2 = /*@__PURE__*/getAugmentedNamespace(_polyfillNode_url$1);
@@ -13113,7 +13138,7 @@
 
   var _polyfillNode_fs$1 = /*#__PURE__*/Object.freeze({
     __proto__: null,
-    'default': _polyfillNode_fs
+    default: _polyfillNode_fs
   });
 
   var require$$1 = /*@__PURE__*/getAugmentedNamespace(_polyfillNode_fs$1);
@@ -13131,7 +13156,7 @@
     }
   }
 
-  class PreviousMap$2 {
+  let PreviousMap$2 = class PreviousMap {
     constructor(css, opts) {
       if (opts.map === false) return
       this.loadAnnotation(css);
@@ -13254,7 +13279,7 @@
         Array.isArray(map.sections)
       )
     }
-  }
+  };
 
   var previousMap = PreviousMap$2;
   PreviousMap$2.default = PreviousMap$2;
@@ -13273,7 +13298,7 @@
   let sourceMapAvailable$1 = Boolean(SourceMapConsumer$1 && SourceMapGenerator$1);
   let pathAvailable$1 = Boolean(resolve$1 && isAbsolute);
 
-  class Input$4 {
+  let Input$4 = class Input {
     constructor(css, opts = {}) {
       if (
         css === null ||
@@ -13497,7 +13522,7 @@
       }
       return json
     }
-  }
+  };
 
   var input = Input$4;
   Input$4.default = Input$4;
@@ -13515,7 +13540,7 @@
   let sourceMapAvailable = Boolean(SourceMapConsumer && SourceMapGenerator);
   let pathAvailable = Boolean(dirname && resolve && relative && sep);
 
-  class MapGenerator$2 {
+  let MapGenerator$2 = class MapGenerator {
     constructor(stringify, root, opts, cssString) {
       this.stringify = stringify;
       this.mapOpts = opts.map || {};
@@ -13839,18 +13864,18 @@
         return [result]
       }
     }
-  }
+  };
 
   var mapGenerator = MapGenerator$2;
 
-  let Node$2 = node_1;
+  let Node$2 = node;
 
-  class Comment$4 extends Node$2 {
+  let Comment$4 = class Comment extends Node$2 {
     constructor(defaults) {
       super(defaults);
       this.type = 'comment';
     }
-  }
+  };
 
   var comment = Comment$4;
   Comment$4.default = Comment$4;
@@ -13858,7 +13883,7 @@
   let { isClean: isClean$1, my: my$1 } = symbols;
   let Declaration$3 = declaration;
   let Comment$3 = comment;
-  let Node$1 = node_1;
+  let Node$1 = node;
 
   let parse$4, Rule$4, AtRule$4, Root$6;
 
@@ -13879,7 +13904,7 @@
     }
   }
 
-  class Container$7 extends Node$1 {
+  let Container$7 = class Container extends Node$1 {
     push(child) {
       child.parent = this;
       this.proxyOf.nodes.push(child);
@@ -14172,7 +14197,7 @@
 
       let processed = nodes.map(i => {
         /* c8 ignore next */
-        if (!i[my$1]) Container$7.rebuild(i);
+        if (!i[my$1]) Container.rebuild(i);
         i = i.proxyOf;
         if (i.parent) i.parent.removeChild(i);
         if (i[isClean$1]) markDirtyUp(i);
@@ -14248,7 +14273,7 @@
 
       return iterator
     }
-  }
+  };
 
   Container$7.registerParse = dependant => {
     parse$4 = dependant;
@@ -14296,7 +14321,7 @@
 
   let LazyResult$4, Processor$3;
 
-  class Document$3 extends Container$6 {
+  let Document$3 = class Document extends Container$6 {
     constructor(defaults) {
       // type needs to be passed to super, otherwise child roots won't be normalized correctly
       super({ type: 'document', ...defaults });
@@ -14311,7 +14336,7 @@
 
       return lazy.stringify()
     }
-  }
+  };
 
   Document$3.registerLazyResult = dependant => {
     LazyResult$4 = dependant;
@@ -14337,7 +14362,7 @@
     }
   };
 
-  class Warning$2 {
+  let Warning$2 = class Warning {
     constructor(text, opts = {}) {
       this.type = 'warning';
       this.text = text;
@@ -14368,14 +14393,14 @@
 
       return this.text
     }
-  }
+  };
 
   var warning = Warning$2;
   Warning$2.default = Warning$2;
 
   let Warning$1 = warning;
 
-  class Result$3 {
+  let Result$3 = class Result {
     constructor(processor, root, opts) {
       this.processor = processor;
       this.messages = [];
@@ -14409,7 +14434,7 @@
     get content() {
       return this.css
     }
-  }
+  };
 
   var result = Result$3;
   Result$3.default = Result$3;
@@ -14681,7 +14706,7 @@
 
   let Container$5 = container;
 
-  class AtRule$3 extends Container$5 {
+  let AtRule$3 = class AtRule extends Container$5 {
     constructor(defaults) {
       super(defaults);
       this.type = 'atrule';
@@ -14696,7 +14721,7 @@
       if (!this.proxyOf.nodes) this.nodes = [];
       return super.prepend(...children)
     }
-  }
+  };
 
   var atRule = AtRule$3;
   AtRule$3.default = AtRule$3;
@@ -14707,7 +14732,7 @@
 
   let LazyResult$3, Processor$2;
 
-  class Root$5 extends Container$4 {
+  let Root$5 = class Root extends Container$4 {
     constructor(defaults) {
       super(defaults);
       this.type = 'root';
@@ -14748,7 +14773,7 @@
       let lazy = new LazyResult$3(new Processor$2(), this, opts);
       return lazy.stringify()
     }
-  }
+  };
 
   Root$5.registerLazyResult = dependant => {
     LazyResult$3 = dependant;
@@ -14823,7 +14848,7 @@
   let Container$3 = container;
   let list$1 = list_1;
 
-  class Rule$3 extends Container$3 {
+  let Rule$3 = class Rule extends Container$3 {
     constructor(defaults) {
       super(defaults);
       this.type = 'rule';
@@ -14839,7 +14864,7 @@
       let sep = match ? match[0] : ',' + this.raw('between', 'beforeOpen');
       this.selector = values.join(sep);
     }
-  }
+  };
 
   var rule = Rule$3;
   Rule$3.default = Rule$3;
@@ -14866,7 +14891,7 @@
     }
   }
 
-  class Parser$1 {
+  let Parser$1 = class Parser {
     constructor(input) {
       this.input = input;
 
@@ -15444,7 +15469,7 @@
         token[0] === 'word' ? token[3] + 1 : token[2]
       )
     }
-  }
+  };
 
   var parser = Parser$1;
 
@@ -15593,7 +15618,7 @@
 
   let postcss$1 = {};
 
-  class LazyResult$2 {
+  let LazyResult$2 = class LazyResult {
     constructor(processor, css, opts) {
       this.stringified = false;
       this.processed = false;
@@ -15605,7 +15630,7 @@
         (css.type === 'root' || css.type === 'document')
       ) {
         root = cleanMarks(css);
-      } else if (css instanceof LazyResult$2 || css instanceof Result$2) {
+      } else if (css instanceof LazyResult || css instanceof Result$2) {
         root = cleanMarks(css.root);
         if (css.map) {
           if (typeof opts.map === 'undefined') opts.map = {};
@@ -16026,7 +16051,7 @@
       }
       stack.pop();
     }
-  }
+  };
 
   LazyResult$2.registerPostcss = dependant => {
     postcss$1 = dependant;
@@ -16044,7 +16069,7 @@
   let parse$1 = parse_1;
   const Result$1 = result;
 
-  class NoWorkResult$1 {
+  let NoWorkResult$1 = class NoWorkResult {
     constructor(processor, css, opts) {
       css = css.toString();
       this.stringified = false;
@@ -16167,7 +16192,7 @@
       if (this.error) throw this.error
       return this.result
     }
-  }
+  };
 
   var noWorkResult = NoWorkResult$1;
   NoWorkResult$1.default = NoWorkResult$1;
@@ -16177,7 +16202,7 @@
   let Document$1 = document;
   let Root$2 = root;
 
-  class Processor$1 {
+  let Processor$1 = class Processor {
     constructor(plugins = []) {
       this.version = '8.4.21';
       this.plugins = this.normalize(plugins);
@@ -16230,7 +16255,7 @@
       }
       return normalized
     }
-  }
+  };
 
   var processor = Processor$1;
   Processor$1.default = Processor$1;
@@ -16308,7 +16333,7 @@
   let list = list_1;
   let Rule = rule;
   let Root = root;
-  let Node = node_1;
+  let Node = node;
 
   function postcss(...plugins) {
     if (plugins.length === 1 && Array.isArray(plugins[0])) {
@@ -16395,7 +16420,7 @@
   const escapeStringRegexp = escapeStringRegexp$1;
   const { isPlainObject } = isPlainObject$2;
   const deepmerge = cjs;
-  const parseSrcset = parseSrcset$1.exports;
+  const parseSrcset = parseSrcsetExports;
   const { parse: postcssParse } = postcss_1;
   // Tags that can conceivably represent stand-alone media.
   const mediaTags = [
@@ -16831,19 +16856,24 @@
                 }
               }
               if (a === 'style') {
-                try {
-                  const abstractSyntaxTree = postcssParse(name + ' {' + value + '}');
-                  const filteredAST = filterCss(abstractSyntaxTree, options.allowedStyles);
+                if (options.parseStyleAttributes) {
+                  try {
+                    const abstractSyntaxTree = postcssParse(name + ' {' + value + '}');
+                    const filteredAST = filterCss(abstractSyntaxTree, options.allowedStyles);
 
-                  value = stringifyStyleAttributes(filteredAST);
+                    value = stringifyStyleAttributes(filteredAST);
 
-                  if (value.length === 0) {
+                    if (value.length === 0) {
+                      delete frame.attribs[a];
+                      return;
+                    }
+                  } catch (e) {
+                    console.warn('Failed to parse "' + name + ' {' + value + '}' + '", If you\'re running this in a browser, we recommend to disable style parsing: options.parseStyleAttributes: false, since this only works in a node environment due to a postcss dependency, More info: https://github.com/apostrophecms/sanitize-html/issues/547');
                     delete frame.attribs[a];
                     return;
                   }
-                } catch (e) {
-                  delete frame.attribs[a];
-                  return;
+                } else if (options.allowedStyles) {
+                  throw new Error('allowedStyles option cannot be used together with parseStyleAttributes: false.');
                 }
               }
               result += ' ' + a;
@@ -17211,7 +17241,8 @@
     allowedSchemesByTag: {},
     allowedSchemesAppliedToAttributes: [ 'href', 'src', 'cite' ],
     allowProtocolRelative: true,
-    enforceHtmlBoundary: false
+    enforceHtmlBoundary: false,
+    parseStyleAttributes: true
   };
 
   sanitizeHtml.simpleTransform = function(newTagName, newAttribs, merge) {
