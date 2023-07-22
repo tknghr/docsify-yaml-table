@@ -5,19 +5,19 @@ const defaultHeader = {
   allowHtmlContent: false,
 }
 
-test('should create empty when no headers.', () => {
+test('should create empty when no columns.', () => {
   const source = {
-    headers: [],
+    columns: [],
   }
   expect(parseTable(source)).toMatchObject({
-    headers: [],
+    columns: [],
     rows: [],
   })
 })
 
 test('with minimum header options.', () => {
   const source = {
-    headers: [
+    columns: [
       { ...defaultHeader, label: 'ID', source: 'id' },
       { ...defaultHeader, label: 'Description', source: 'note' },
     ],
@@ -28,7 +28,7 @@ test('with minimum header options.', () => {
     ]
   }
   expect(parseTable(source)).toMatchObject({
-    headers: [
+    columns: [
       { ...defaultHeader, label: 'ID', source: 'id' },
       { ...defaultHeader, label: 'Description', source: 'note' },
     ],
@@ -42,7 +42,7 @@ test('with minimum header options.', () => {
 
 test('should sanitize labels.', () => {
   const source = {
-    headers: [
+    columns: [
       { ...defaultHeader, label: '<script>alert("a");</script><b>label bold</b>', source: 'col1' },
       { ...defaultHeader, label: '<script>alert("a");</script><b>label bold</b>', source: 'col1', allowHtmlHeader: true },
       { ...defaultHeader, label: '<b>label bold</b><td>td</td>', source: 'col2', allowHtmlHeader: true, allowHtmlContent: true },
@@ -52,7 +52,7 @@ test('should sanitize labels.', () => {
     ]
   }
   expect(parseTable(source)).toMatchObject({
-    headers: [
+    columns: [
       // Escaped all html tags.
       { ...defaultHeader, label: '&lt;script&gt;alert("a");&lt;/script&gt;&lt;b&gt;label bold&lt;/b&gt;', source: 'col1'},
       // Remove script tag.
@@ -74,7 +74,7 @@ test('should sanitize labels.', () => {
 
 test('should keep line breaks.', () => {
   const source = {
-    headers: [
+    columns: [
       { ...defaultHeader, label: 'Multiple\nlines', source: 'col1' },
     ],
     rows: [
@@ -82,7 +82,7 @@ test('should keep line breaks.', () => {
     ]
   }
   expect(parseTable(source)).toMatchObject({
-    headers: [
+    columns: [
       { ...defaultHeader, label: 'Multiple\nlines', source: 'col1' },
     ],
     rows: [
@@ -93,7 +93,7 @@ test('should keep line breaks.', () => {
 
 test('should increment autonumber.', () => {
   const source = {
-    headers: [
+    columns: [
       { ...defaultHeader, type: 'autonumber' },
       { ...defaultHeader, type: 'autonumber', label: 'No', startFrom: 10, align: 'left' },
     ],
@@ -104,7 +104,7 @@ test('should increment autonumber.', () => {
     ]
   }
   expect(parseTable(source)).toMatchObject({
-    headers: [
+    columns: [
       // Should be set default label and startFrom, __autonumber__ should be next count
       { ...defaultHeader, type: 'autonumber', label: '#', startFrom: 1, __autonumber__: 4, align: 'right' },
       // Should be used provided label and startFrom, __autonumber__ should be next count

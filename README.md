@@ -11,7 +11,7 @@ Insert script into your docsify `index.html`.
 
 ```html
 <!-- jsDelivr -->
-<script src="https://cdn.jsdelivr.net/gh/tknghr/docsify-yaml-table@v0.4.2/dist/docsify-yaml-table.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/tknghr/docsify-yaml-table@v0.5.0/dist/docsify-yaml-table.min.js"></script>
 
 <!-- or locally -->
 <script src="path/to/docsify-yaml-table.min.js"></script>
@@ -42,7 +42,7 @@ Rendered like below.
 
 ## Options
 
-### Header options
+### Column options
 
 | Key              | Description   |
 |------------------|---------------|
@@ -58,7 +58,7 @@ Rendered like below.
 
 ~~~
 ```yamltable
-headers:
+columns:
 - label: "#"
   type: autonumber
   startFrom: 9

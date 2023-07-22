@@ -1,6 +1,6 @@
 'use strict';
 /**
- * @typedef {Object} Header
+ * @typedef {Object} Column
  * @property {string?} label header label
  * @property {string?} source row data field name
  * @property {boolean} allowHtmlHeader allow HTML tags for header label
@@ -28,27 +28,27 @@ const HEADER_AUTONUMBER = '#'
 /**
  * Create table object from source.
  * @param {Object} source Table source.
- * @returns {{ headers: Header[], rows: Row[]}} Table object.
+ * @returns {{ columns: Column[], rows: Row[]}} Table object.
  */
 export const parseTable = (source) => {
   const table = {
-    headers: generateHeader(source.headers),
+    columns: generateHeader(source.columns),
     rows: [],
   }
 
-  table.rows.push(...generateRows(table.headers, source.rows))
+  table.rows.push(...generateRows(table.columns, source.rows))
 
   return table
 }
 
 /**
  * Generate header object.
- * @param {Object} headers Source data to convert to table
- * @returns {Header[]} Header object
+ * @param {Object} columns Source data to convert to table
+ * @returns {Column[]} Column object
  */
-function generateHeader(headers) {
-  return headers.map(key => {
-    const header = {
+function generateHeader(columns) {
+  return columns.map(key => {
+    const column = {
       label: (!!key.allowHtmlHeader ? sanitize(key.label) : escapeAll(key.label)) || '',
       source: key.source || '',
       allowHtmlHeader: !!key.allowHtmlHeader,
@@ -59,28 +59,28 @@ function generateHeader(headers) {
 
     // Special column: auto numbering
     if (key.type === TYPE_AUTONUMBER) {
-      header.label = header.label || HEADER_AUTONUMBER
-      header.startFrom = key.startFrom || 1
-      header.__autonumber__ = header.startFrom
+      column.label = column.label || HEADER_AUTONUMBER
+      column.startFrom = key.startFrom || 1
+      column.__autonumber__ = column.startFrom
       // default align is right
-      header.align = header.align || 'right'
+      column.align = column.align || 'right'
     }
 
     // Remove undefined keys
-    Object.keys(header).forEach((k) => header[k] == null && delete header[k]);
-    return header
+    Object.keys(column).forEach((k) => column[k] == null && delete column[k]);
+    return column
   })
 }
 
 /**
  * 
- * @param {Header[]} headers Header list
+ * @param {Column[]} columns Column list
  * @param {Object[]} rows Row sources
  * @returns {Cell[]} Row objects
  */
-function generateRows(headers, rows) {
+function generateRows(columns, rows) {
   return (rows || []).map(source =>
-    headers.map(head => {
+    columns.map(head => {
       function getContent() {
         // Raw column: rendering as HTML (not secure)
         if (head.allowHtmlContent) {

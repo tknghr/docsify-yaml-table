@@ -14,21 +14,21 @@ export const convert2table = (yaml) => {
   if (!data || !data.rows) {
     return null
   }
-  if (!data.headers) {
+  if (!data.columns) {
     // Use the first row's property name as header
-    data.headers = Object.keys(data.rows[0]).map(key => ({
+    data.columns = Object.keys(data.rows[0]).map(key => ({
       label: key,
       source: key,
     }))
   }
 
   const tableData = parseTable(data)
-  if (tableData.headers.length === 0) return null
+  if (tableData.columns.length === 0) return null
 
   // header
-  return `| ${tableData.headers.map(h => h.label).join(' | ')} |\n`
+  return `| ${tableData.columns.map(h => h.label).join(' | ')} |\n`
     // separator
-    + `|${tableData.headers.map(h =>
+    + `|${tableData.columns.map(h =>
       h.align === 'left' ? ':---'
       : h.align === 'center' ? ':--:'
       : h.align === 'right' ? '---:'

@@ -3851,6 +3851,10 @@
 
   var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
+  function getDefaultExportFromCjs (x) {
+  	return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, 'default') ? x['default'] : x;
+  }
+
   function getAugmentedNamespace(n) {
     if (n.__esModule) return n;
     var f = n.default;
@@ -3916,6 +3920,7 @@
   	exports.replaceCodePoint = exports.fromCodePoint = void 0;
   	var decodeMap = new Map([
   	    [0, 65533],
+  	    // C1 Unicode control character reference replacements
   	    [128, 8364],
   	    [130, 8218],
   	    [131, 402],
@@ -3944,6 +3949,9 @@
   	    [158, 382],
   	    [159, 376],
   	]);
+  	/**
+  	 * Polyfill for `String.fromCodePoint`. It is used to create a string from a Unicode code point.
+  	 */
   	exports.fromCodePoint = 
   	// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, node/no-unsupported-features/es-builtins
   	(_a = String.fromCodePoint) !== null && _a !== void 0 ? _a : function (codePoint) {
@@ -3956,6 +3964,11 @@
   	    output += String.fromCharCode(codePoint);
   	    return output;
   	};
+  	/**
+  	 * Replace the given code point with a replacement character if it is a
+  	 * surrogate or is outside the valid range. Otherwise return the code
+  	 * point unchanged.
+  	 */
   	function replaceCodePoint(codePoint) {
   	    var _a;
   	    if ((codePoint >= 0xd800 && codePoint <= 0xdfff) || codePoint > 0x10ffff) {
@@ -3964,6 +3977,13 @@
   	    return (_a = decodeMap.get(codePoint)) !== null && _a !== void 0 ? _a : codePoint;
   	}
   	exports.replaceCodePoint = replaceCodePoint;
+  	/**
+  	 * Replace the code point if relevant, then convert it to a string.
+  	 *
+  	 * @deprecated Use `fromCodePoint(replaceCodePoint(codePoint))` instead.
+  	 * @param codePoint The code point to decode.
+  	 * @returns The decoded code point.
+  	 */
   	function decodeCodePoint(codePoint) {
   	    return (0, exports.fromCodePoint)(replaceCodePoint(codePoint));
   	}
@@ -3972,16 +3992,39 @@
   } (decode_codepoint));
 
   (function (exports) {
+  	var __createBinding = (commonjsGlobal && commonjsGlobal.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+  	    if (k2 === undefined) k2 = k;
+  	    var desc = Object.getOwnPropertyDescriptor(m, k);
+  	    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+  	      desc = { enumerable: true, get: function() { return m[k]; } };
+  	    }
+  	    Object.defineProperty(o, k2, desc);
+  	}) : (function(o, m, k, k2) {
+  	    if (k2 === undefined) k2 = k;
+  	    o[k2] = m[k];
+  	}));
+  	var __setModuleDefault = (commonjsGlobal && commonjsGlobal.__setModuleDefault) || (Object.create ? (function(o, v) {
+  	    Object.defineProperty(o, "default", { enumerable: true, value: v });
+  	}) : function(o, v) {
+  	    o["default"] = v;
+  	});
+  	var __importStar = (commonjsGlobal && commonjsGlobal.__importStar) || function (mod) {
+  	    if (mod && mod.__esModule) return mod;
+  	    var result = {};
+  	    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+  	    __setModuleDefault(result, mod);
+  	    return result;
+  	};
   	var __importDefault = (commonjsGlobal && commonjsGlobal.__importDefault) || function (mod) {
   	    return (mod && mod.__esModule) ? mod : { "default": mod };
   	};
   	Object.defineProperty(exports, "__esModule", { value: true });
-  	exports.decodeXML = exports.decodeHTMLStrict = exports.decodeHTML = exports.determineBranch = exports.BinTrieFlags = exports.fromCodePoint = exports.replaceCodePoint = exports.decodeCodePoint = exports.xmlDecodeTree = exports.htmlDecodeTree = void 0;
+  	exports.decodeXML = exports.decodeHTMLStrict = exports.decodeHTMLAttribute = exports.decodeHTML = exports.determineBranch = exports.EntityDecoder = exports.DecodingMode = exports.BinTrieFlags = exports.fromCodePoint = exports.replaceCodePoint = exports.decodeCodePoint = exports.xmlDecodeTree = exports.htmlDecodeTree = void 0;
   	var decode_data_html_js_1 = __importDefault(decodeDataHtml);
   	exports.htmlDecodeTree = decode_data_html_js_1.default;
   	var decode_data_xml_js_1 = __importDefault(decodeDataXml);
   	exports.xmlDecodeTree = decode_data_xml_js_1.default;
-  	var decode_codepoint_js_1 = __importDefault(decode_codepoint);
+  	var decode_codepoint_js_1 = __importStar(decode_codepoint);
   	exports.decodeCodePoint = decode_codepoint_js_1.default;
   	var decode_codepoint_js_2 = decode_codepoint;
   	Object.defineProperty(exports, "replaceCodePoint", { enumerable: true, get: function () { return decode_codepoint_js_2.replaceCodePoint; } });
@@ -3990,99 +4033,421 @@
   	(function (CharCodes) {
   	    CharCodes[CharCodes["NUM"] = 35] = "NUM";
   	    CharCodes[CharCodes["SEMI"] = 59] = "SEMI";
+  	    CharCodes[CharCodes["EQUALS"] = 61] = "EQUALS";
   	    CharCodes[CharCodes["ZERO"] = 48] = "ZERO";
   	    CharCodes[CharCodes["NINE"] = 57] = "NINE";
   	    CharCodes[CharCodes["LOWER_A"] = 97] = "LOWER_A";
   	    CharCodes[CharCodes["LOWER_F"] = 102] = "LOWER_F";
   	    CharCodes[CharCodes["LOWER_X"] = 120] = "LOWER_X";
-  	    /** Bit that needs to be set to convert an upper case ASCII character to lower case */
-  	    CharCodes[CharCodes["To_LOWER_BIT"] = 32] = "To_LOWER_BIT";
+  	    CharCodes[CharCodes["LOWER_Z"] = 122] = "LOWER_Z";
+  	    CharCodes[CharCodes["UPPER_A"] = 65] = "UPPER_A";
+  	    CharCodes[CharCodes["UPPER_F"] = 70] = "UPPER_F";
+  	    CharCodes[CharCodes["UPPER_Z"] = 90] = "UPPER_Z";
   	})(CharCodes || (CharCodes = {}));
+  	/** Bit that needs to be set to convert an upper case ASCII character to lower case */
+  	var TO_LOWER_BIT = 32;
   	var BinTrieFlags;
   	(function (BinTrieFlags) {
   	    BinTrieFlags[BinTrieFlags["VALUE_LENGTH"] = 49152] = "VALUE_LENGTH";
   	    BinTrieFlags[BinTrieFlags["BRANCH_LENGTH"] = 16256] = "BRANCH_LENGTH";
   	    BinTrieFlags[BinTrieFlags["JUMP_TABLE"] = 127] = "JUMP_TABLE";
   	})(BinTrieFlags = exports.BinTrieFlags || (exports.BinTrieFlags = {}));
-  	function getDecoder(decodeTree) {
-  	    return function decodeHTMLBinary(str, strict) {
-  	        var ret = "";
-  	        var lastIdx = 0;
-  	        var strIdx = 0;
-  	        while ((strIdx = str.indexOf("&", strIdx)) >= 0) {
-  	            ret += str.slice(lastIdx, strIdx);
-  	            lastIdx = strIdx;
-  	            // Skip the "&"
-  	            strIdx += 1;
-  	            // If we have a numeric entity, handle this separately.
-  	            if (str.charCodeAt(strIdx) === CharCodes.NUM) {
-  	                // Skip the leading "&#". For hex entities, also skip the leading "x".
-  	                var start = strIdx + 1;
-  	                var base = 10;
-  	                var cp = str.charCodeAt(start);
-  	                if ((cp | CharCodes.To_LOWER_BIT) === CharCodes.LOWER_X) {
-  	                    base = 16;
-  	                    strIdx += 1;
-  	                    start += 1;
+  	function isNumber(code) {
+  	    return code >= CharCodes.ZERO && code <= CharCodes.NINE;
+  	}
+  	function isHexadecimalCharacter(code) {
+  	    return ((code >= CharCodes.UPPER_A && code <= CharCodes.UPPER_F) ||
+  	        (code >= CharCodes.LOWER_A && code <= CharCodes.LOWER_F));
+  	}
+  	function isAsciiAlphaNumeric(code) {
+  	    return ((code >= CharCodes.UPPER_A && code <= CharCodes.UPPER_Z) ||
+  	        (code >= CharCodes.LOWER_A && code <= CharCodes.LOWER_Z) ||
+  	        isNumber(code));
+  	}
+  	/**
+  	 * Checks if the given character is a valid end character for an entity in an attribute.
+  	 *
+  	 * Attribute values that aren't terminated properly aren't parsed, and shouldn't lead to a parser error.
+  	 * See the example in https://html.spec.whatwg.org/multipage/parsing.html#named-character-reference-state
+  	 */
+  	function isEntityInAttributeInvalidEnd(code) {
+  	    return code === CharCodes.EQUALS || isAsciiAlphaNumeric(code);
+  	}
+  	var EntityDecoderState;
+  	(function (EntityDecoderState) {
+  	    EntityDecoderState[EntityDecoderState["EntityStart"] = 0] = "EntityStart";
+  	    EntityDecoderState[EntityDecoderState["NumericStart"] = 1] = "NumericStart";
+  	    EntityDecoderState[EntityDecoderState["NumericDecimal"] = 2] = "NumericDecimal";
+  	    EntityDecoderState[EntityDecoderState["NumericHex"] = 3] = "NumericHex";
+  	    EntityDecoderState[EntityDecoderState["NamedEntity"] = 4] = "NamedEntity";
+  	})(EntityDecoderState || (EntityDecoderState = {}));
+  	var DecodingMode;
+  	(function (DecodingMode) {
+  	    /** Entities in text nodes that can end with any character. */
+  	    DecodingMode[DecodingMode["Legacy"] = 0] = "Legacy";
+  	    /** Only allow entities terminated with a semicolon. */
+  	    DecodingMode[DecodingMode["Strict"] = 1] = "Strict";
+  	    /** Entities in attributes have limitations on ending characters. */
+  	    DecodingMode[DecodingMode["Attribute"] = 2] = "Attribute";
+  	})(DecodingMode = exports.DecodingMode || (exports.DecodingMode = {}));
+  	/**
+  	 * Token decoder with support of writing partial entities.
+  	 */
+  	var EntityDecoder = /** @class */ (function () {
+  	    function EntityDecoder(
+  	    /** The tree used to decode entities. */
+  	    decodeTree, 
+  	    /**
+  	     * The function that is called when a codepoint is decoded.
+  	     *
+  	     * For multi-byte named entities, this will be called multiple times,
+  	     * with the second codepoint, and the same `consumed` value.
+  	     *
+  	     * @param codepoint The decoded codepoint.
+  	     * @param consumed The number of bytes consumed by the decoder.
+  	     */
+  	    emitCodePoint, 
+  	    /** An object that is used to produce errors. */
+  	    errors) {
+  	        this.decodeTree = decodeTree;
+  	        this.emitCodePoint = emitCodePoint;
+  	        this.errors = errors;
+  	        /** The current state of the decoder. */
+  	        this.state = EntityDecoderState.EntityStart;
+  	        /** Characters that were consumed while parsing an entity. */
+  	        this.consumed = 1;
+  	        /**
+  	         * The result of the entity.
+  	         *
+  	         * Either the result index of a numeric entity, or the codepoint of a
+  	         * numeric entity.
+  	         */
+  	        this.result = 0;
+  	        /** The current index in the decode tree. */
+  	        this.treeIndex = 0;
+  	        /** The number of characters that were consumed in excess. */
+  	        this.excess = 1;
+  	        /** The mode in which the decoder is operating. */
+  	        this.decodeMode = DecodingMode.Strict;
+  	    }
+  	    /** Resets the instance to make it reusable. */
+  	    EntityDecoder.prototype.startEntity = function (decodeMode) {
+  	        this.decodeMode = decodeMode;
+  	        this.state = EntityDecoderState.EntityStart;
+  	        this.result = 0;
+  	        this.treeIndex = 0;
+  	        this.excess = 1;
+  	        this.consumed = 1;
+  	    };
+  	    /**
+  	     * Write an entity to the decoder. This can be called multiple times with partial entities.
+  	     * If the entity is incomplete, the decoder will return -1.
+  	     *
+  	     * Mirrors the implementation of `getDecoder`, but with the ability to stop decoding if the
+  	     * entity is incomplete, and resume when the next string is written.
+  	     *
+  	     * @param string The string containing the entity (or a continuation of the entity).
+  	     * @param offset The offset at which the entity begins. Should be 0 if this is not the first call.
+  	     * @returns The number of characters that were consumed, or -1 if the entity is incomplete.
+  	     */
+  	    EntityDecoder.prototype.write = function (str, offset) {
+  	        switch (this.state) {
+  	            case EntityDecoderState.EntityStart: {
+  	                if (str.charCodeAt(offset) === CharCodes.NUM) {
+  	                    this.state = EntityDecoderState.NumericStart;
+  	                    this.consumed += 1;
+  	                    return this.stateNumericStart(str, offset + 1);
   	                }
-  	                do
-  	                    cp = str.charCodeAt(++strIdx);
-  	                while ((cp >= CharCodes.ZERO && cp <= CharCodes.NINE) ||
-  	                    (base === 16 &&
-  	                        (cp | CharCodes.To_LOWER_BIT) >= CharCodes.LOWER_A &&
-  	                        (cp | CharCodes.To_LOWER_BIT) <= CharCodes.LOWER_F));
-  	                if (start !== strIdx) {
-  	                    var entity = str.substring(start, strIdx);
-  	                    var parsed = parseInt(entity, base);
-  	                    if (str.charCodeAt(strIdx) === CharCodes.SEMI) {
-  	                        strIdx += 1;
-  	                    }
-  	                    else if (strict) {
-  	                        continue;
-  	                    }
-  	                    ret += (0, decode_codepoint_js_1.default)(parsed);
-  	                    lastIdx = strIdx;
-  	                }
-  	                continue;
+  	                this.state = EntityDecoderState.NamedEntity;
+  	                return this.stateNamedEntity(str, offset);
   	            }
-  	            var resultIdx = 0;
-  	            var excess = 1;
-  	            var treeIdx = 0;
-  	            var current = decodeTree[treeIdx];
-  	            for (; strIdx < str.length; strIdx++, excess++) {
-  	                treeIdx = determineBranch(decodeTree, current, treeIdx + 1, str.charCodeAt(strIdx));
-  	                if (treeIdx < 0)
-  	                    break;
-  	                current = decodeTree[treeIdx];
-  	                var masked = current & BinTrieFlags.VALUE_LENGTH;
-  	                // If the branch is a value, store it and continue
-  	                if (masked) {
-  	                    // If we have a legacy entity while parsing strictly, just skip the number of bytes
-  	                    if (!strict || str.charCodeAt(strIdx) === CharCodes.SEMI) {
-  	                        resultIdx = treeIdx;
-  	                        excess = 0;
-  	                    }
-  	                    // The mask is the number of bytes of the value, including the current byte.
-  	                    var valueLength = (masked >> 14) - 1;
-  	                    if (valueLength === 0)
-  	                        break;
-  	                    treeIdx += valueLength;
-  	                }
+  	            case EntityDecoderState.NumericStart: {
+  	                return this.stateNumericStart(str, offset);
   	            }
-  	            if (resultIdx !== 0) {
-  	                var valueLength = (decodeTree[resultIdx] & BinTrieFlags.VALUE_LENGTH) >> 14;
-  	                ret +=
-  	                    valueLength === 1
-  	                        ? String.fromCharCode(decodeTree[resultIdx] & ~BinTrieFlags.VALUE_LENGTH)
-  	                        : valueLength === 2
-  	                            ? String.fromCharCode(decodeTree[resultIdx + 1])
-  	                            : String.fromCharCode(decodeTree[resultIdx + 1], decodeTree[resultIdx + 2]);
-  	                lastIdx = strIdx - excess + 1;
+  	            case EntityDecoderState.NumericDecimal: {
+  	                return this.stateNumericDecimal(str, offset);
+  	            }
+  	            case EntityDecoderState.NumericHex: {
+  	                return this.stateNumericHex(str, offset);
+  	            }
+  	            case EntityDecoderState.NamedEntity: {
+  	                return this.stateNamedEntity(str, offset);
   	            }
   	        }
-  	        return ret + str.slice(lastIdx);
+  	    };
+  	    /**
+  	     * Switches between the numeric decimal and hexadecimal states.
+  	     *
+  	     * Equivalent to the `Numeric character reference state` in the HTML spec.
+  	     *
+  	     * @param str The string containing the entity (or a continuation of the entity).
+  	     * @param offset The current offset.
+  	     * @returns The number of characters that were consumed, or -1 if the entity is incomplete.
+  	     */
+  	    EntityDecoder.prototype.stateNumericStart = function (str, offset) {
+  	        if (offset >= str.length) {
+  	            return -1;
+  	        }
+  	        if ((str.charCodeAt(offset) | TO_LOWER_BIT) === CharCodes.LOWER_X) {
+  	            this.state = EntityDecoderState.NumericHex;
+  	            this.consumed += 1;
+  	            return this.stateNumericHex(str, offset + 1);
+  	        }
+  	        this.state = EntityDecoderState.NumericDecimal;
+  	        return this.stateNumericDecimal(str, offset);
+  	    };
+  	    EntityDecoder.prototype.addToNumericResult = function (str, start, end, base) {
+  	        if (start !== end) {
+  	            var digitCount = end - start;
+  	            this.result =
+  	                this.result * Math.pow(base, digitCount) +
+  	                    parseInt(str.substr(start, digitCount), base);
+  	            this.consumed += digitCount;
+  	        }
+  	    };
+  	    /**
+  	     * Parses a hexadecimal numeric entity.
+  	     *
+  	     * Equivalent to the `Hexademical character reference state` in the HTML spec.
+  	     *
+  	     * @param str The string containing the entity (or a continuation of the entity).
+  	     * @param offset The current offset.
+  	     * @returns The number of characters that were consumed, or -1 if the entity is incomplete.
+  	     */
+  	    EntityDecoder.prototype.stateNumericHex = function (str, offset) {
+  	        var startIdx = offset;
+  	        while (offset < str.length) {
+  	            var char = str.charCodeAt(offset);
+  	            if (isNumber(char) || isHexadecimalCharacter(char)) {
+  	                offset += 1;
+  	            }
+  	            else {
+  	                this.addToNumericResult(str, startIdx, offset, 16);
+  	                return this.emitNumericEntity(char, 3);
+  	            }
+  	        }
+  	        this.addToNumericResult(str, startIdx, offset, 16);
+  	        return -1;
+  	    };
+  	    /**
+  	     * Parses a decimal numeric entity.
+  	     *
+  	     * Equivalent to the `Decimal character reference state` in the HTML spec.
+  	     *
+  	     * @param str The string containing the entity (or a continuation of the entity).
+  	     * @param offset The current offset.
+  	     * @returns The number of characters that were consumed, or -1 if the entity is incomplete.
+  	     */
+  	    EntityDecoder.prototype.stateNumericDecimal = function (str, offset) {
+  	        var startIdx = offset;
+  	        while (offset < str.length) {
+  	            var char = str.charCodeAt(offset);
+  	            if (isNumber(char)) {
+  	                offset += 1;
+  	            }
+  	            else {
+  	                this.addToNumericResult(str, startIdx, offset, 10);
+  	                return this.emitNumericEntity(char, 2);
+  	            }
+  	        }
+  	        this.addToNumericResult(str, startIdx, offset, 10);
+  	        return -1;
+  	    };
+  	    /**
+  	     * Validate and emit a numeric entity.
+  	     *
+  	     * Implements the logic from the `Hexademical character reference start
+  	     * state` and `Numeric character reference end state` in the HTML spec.
+  	     *
+  	     * @param lastCp The last code point of the entity. Used to see if the
+  	     *               entity was terminated with a semicolon.
+  	     * @param expectedLength The minimum number of characters that should be
+  	     *                       consumed. Used to validate that at least one digit
+  	     *                       was consumed.
+  	     * @returns The number of characters that were consumed.
+  	     */
+  	    EntityDecoder.prototype.emitNumericEntity = function (lastCp, expectedLength) {
+  	        var _a;
+  	        // Ensure we consumed at least one digit.
+  	        if (this.consumed <= expectedLength) {
+  	            (_a = this.errors) === null || _a === void 0 ? void 0 : _a.absenceOfDigitsInNumericCharacterReference(this.consumed);
+  	            return 0;
+  	        }
+  	        // Figure out if this is a legit end of the entity
+  	        if (lastCp === CharCodes.SEMI) {
+  	            this.consumed += 1;
+  	        }
+  	        else if (this.decodeMode === DecodingMode.Strict) {
+  	            return 0;
+  	        }
+  	        this.emitCodePoint((0, decode_codepoint_js_1.replaceCodePoint)(this.result), this.consumed);
+  	        if (this.errors) {
+  	            if (lastCp !== CharCodes.SEMI) {
+  	                this.errors.missingSemicolonAfterCharacterReference();
+  	            }
+  	            this.errors.validateNumericCharacterReference(this.result);
+  	        }
+  	        return this.consumed;
+  	    };
+  	    /**
+  	     * Parses a named entity.
+  	     *
+  	     * Equivalent to the `Named character reference state` in the HTML spec.
+  	     *
+  	     * @param str The string containing the entity (or a continuation of the entity).
+  	     * @param offset The current offset.
+  	     * @returns The number of characters that were consumed, or -1 if the entity is incomplete.
+  	     */
+  	    EntityDecoder.prototype.stateNamedEntity = function (str, offset) {
+  	        var decodeTree = this.decodeTree;
+  	        var current = decodeTree[this.treeIndex];
+  	        // The mask is the number of bytes of the value, including the current byte.
+  	        var valueLength = (current & BinTrieFlags.VALUE_LENGTH) >> 14;
+  	        for (; offset < str.length; offset++, this.excess++) {
+  	            var char = str.charCodeAt(offset);
+  	            this.treeIndex = determineBranch(decodeTree, current, this.treeIndex + Math.max(1, valueLength), char);
+  	            if (this.treeIndex < 0) {
+  	                return this.result === 0 ||
+  	                    // If we are parsing an attribute
+  	                    (this.decodeMode === DecodingMode.Attribute &&
+  	                        // We shouldn't have consumed any characters after the entity,
+  	                        (valueLength === 0 ||
+  	                            // And there should be no invalid characters.
+  	                            isEntityInAttributeInvalidEnd(char)))
+  	                    ? 0
+  	                    : this.emitNotTerminatedNamedEntity();
+  	            }
+  	            current = decodeTree[this.treeIndex];
+  	            valueLength = (current & BinTrieFlags.VALUE_LENGTH) >> 14;
+  	            // If the branch is a value, store it and continue
+  	            if (valueLength !== 0) {
+  	                // If the entity is terminated by a semicolon, we are done.
+  	                if (char === CharCodes.SEMI) {
+  	                    return this.emitNamedEntityData(this.treeIndex, valueLength, this.consumed + this.excess);
+  	                }
+  	                // If we encounter a non-terminated (legacy) entity while parsing strictly, then ignore it.
+  	                if (this.decodeMode !== DecodingMode.Strict) {
+  	                    this.result = this.treeIndex;
+  	                    this.consumed += this.excess;
+  	                    this.excess = 0;
+  	                }
+  	            }
+  	        }
+  	        return -1;
+  	    };
+  	    /**
+  	     * Emit a named entity that was not terminated with a semicolon.
+  	     *
+  	     * @returns The number of characters consumed.
+  	     */
+  	    EntityDecoder.prototype.emitNotTerminatedNamedEntity = function () {
+  	        var _a;
+  	        var _b = this, result = _b.result, decodeTree = _b.decodeTree;
+  	        var valueLength = (decodeTree[result] & BinTrieFlags.VALUE_LENGTH) >> 14;
+  	        this.emitNamedEntityData(result, valueLength, this.consumed);
+  	        (_a = this.errors) === null || _a === void 0 ? void 0 : _a.missingSemicolonAfterCharacterReference();
+  	        return this.consumed;
+  	    };
+  	    /**
+  	     * Emit a named entity.
+  	     *
+  	     * @param result The index of the entity in the decode tree.
+  	     * @param valueLength The number of bytes in the entity.
+  	     * @param consumed The number of characters consumed.
+  	     *
+  	     * @returns The number of characters consumed.
+  	     */
+  	    EntityDecoder.prototype.emitNamedEntityData = function (result, valueLength, consumed) {
+  	        var decodeTree = this.decodeTree;
+  	        this.emitCodePoint(valueLength === 1
+  	            ? decodeTree[result] & ~BinTrieFlags.VALUE_LENGTH
+  	            : decodeTree[result + 1], consumed);
+  	        if (valueLength === 3) {
+  	            // For multi-byte values, we need to emit the second byte.
+  	            this.emitCodePoint(decodeTree[result + 2], consumed);
+  	        }
+  	        return consumed;
+  	    };
+  	    /**
+  	     * Signal to the parser that the end of the input was reached.
+  	     *
+  	     * Remaining data will be emitted and relevant errors will be produced.
+  	     *
+  	     * @returns The number of characters consumed.
+  	     */
+  	    EntityDecoder.prototype.end = function () {
+  	        var _a;
+  	        switch (this.state) {
+  	            case EntityDecoderState.NamedEntity: {
+  	                // Emit a named entity if we have one.
+  	                return this.result !== 0 &&
+  	                    (this.decodeMode !== DecodingMode.Attribute ||
+  	                        this.result === this.treeIndex)
+  	                    ? this.emitNotTerminatedNamedEntity()
+  	                    : 0;
+  	            }
+  	            // Otherwise, emit a numeric entity if we have one.
+  	            case EntityDecoderState.NumericDecimal: {
+  	                return this.emitNumericEntity(0, 2);
+  	            }
+  	            case EntityDecoderState.NumericHex: {
+  	                return this.emitNumericEntity(0, 3);
+  	            }
+  	            case EntityDecoderState.NumericStart: {
+  	                (_a = this.errors) === null || _a === void 0 ? void 0 : _a.absenceOfDigitsInNumericCharacterReference(this.consumed);
+  	                return 0;
+  	            }
+  	            case EntityDecoderState.EntityStart: {
+  	                // Return 0 if we have no entity.
+  	                return 0;
+  	            }
+  	        }
+  	    };
+  	    return EntityDecoder;
+  	}());
+  	exports.EntityDecoder = EntityDecoder;
+  	/**
+  	 * Creates a function that decodes entities in a string.
+  	 *
+  	 * @param decodeTree The decode tree.
+  	 * @returns A function that decodes entities in a string.
+  	 */
+  	function getDecoder(decodeTree) {
+  	    var ret = "";
+  	    var decoder = new EntityDecoder(decodeTree, function (str) { return (ret += (0, decode_codepoint_js_1.fromCodePoint)(str)); });
+  	    return function decodeWithTrie(str, decodeMode) {
+  	        var lastIndex = 0;
+  	        var offset = 0;
+  	        while ((offset = str.indexOf("&", offset)) >= 0) {
+  	            ret += str.slice(lastIndex, offset);
+  	            decoder.startEntity(decodeMode);
+  	            var len = decoder.write(str, 
+  	            // Skip the "&"
+  	            offset + 1);
+  	            if (len < 0) {
+  	                lastIndex = offset + decoder.end();
+  	                break;
+  	            }
+  	            lastIndex = offset + len;
+  	            // If `len` is 0, skip the current `&` and continue.
+  	            offset = len === 0 ? lastIndex + 1 : lastIndex;
+  	        }
+  	        var result = ret + str.slice(lastIndex);
+  	        // Make sure we don't keep a reference to the final string.
+  	        ret = "";
+  	        return result;
   	    };
   	}
+  	/**
+  	 * Determines the branch of the current node that is taken given the current
+  	 * character. This function is used to traverse the trie.
+  	 *
+  	 * @param decodeTree The trie.
+  	 * @param current The current node.
+  	 * @param nodeIdx The index right after the current node and its value.
+  	 * @param char The current character.
+  	 * @returns The index of the next node, or -1 if no branch is taken.
+  	 */
   	function determineBranch(decodeTree, current, nodeIdx, char) {
   	    var branchCount = (current & BinTrieFlags.BRANCH_LENGTH) >> 7;
   	    var jumpOffset = current & BinTrieFlags.JUMP_TABLE;
@@ -4120,33 +4485,45 @@
   	var htmlDecoder = getDecoder(decode_data_html_js_1.default);
   	var xmlDecoder = getDecoder(decode_data_xml_js_1.default);
   	/**
-  	 * Decodes an HTML string, allowing for entities not terminated by a semi-colon.
+  	 * Decodes an HTML string.
+  	 *
+  	 * @param str The string to decode.
+  	 * @param mode The decoding mode.
+  	 * @returns The decoded string.
+  	 */
+  	function decodeHTML(str, mode) {
+  	    if (mode === void 0) { mode = DecodingMode.Legacy; }
+  	    return htmlDecoder(str, mode);
+  	}
+  	exports.decodeHTML = decodeHTML;
+  	/**
+  	 * Decodes an HTML string in an attribute.
   	 *
   	 * @param str The string to decode.
   	 * @returns The decoded string.
   	 */
-  	function decodeHTML(str) {
-  	    return htmlDecoder(str, false);
+  	function decodeHTMLAttribute(str) {
+  	    return htmlDecoder(str, DecodingMode.Attribute);
   	}
-  	exports.decodeHTML = decodeHTML;
+  	exports.decodeHTMLAttribute = decodeHTMLAttribute;
   	/**
-  	 * Decodes an HTML string, requiring all entities to be terminated by a semi-colon.
+  	 * Decodes an HTML string, requiring all entities to be terminated by a semicolon.
   	 *
   	 * @param str The string to decode.
   	 * @returns The decoded string.
   	 */
   	function decodeHTMLStrict(str) {
-  	    return htmlDecoder(str, true);
+  	    return htmlDecoder(str, DecodingMode.Strict);
   	}
   	exports.decodeHTMLStrict = decodeHTMLStrict;
   	/**
-  	 * Decodes an XML string, requiring all entities to be terminated by a semi-colon.
+  	 * Decodes an XML string, requiring all entities to be terminated by a semicolon.
   	 *
   	 * @param str The string to decode.
   	 * @returns The decoded string.
   	 */
   	function decodeXML(str) {
-  	    return xmlDecoder(str, true);
+  	    return xmlDecoder(str, DecodingMode.Strict);
   	}
   	exports.decodeXML = decodeXML;
   	
@@ -4164,7 +4541,7 @@
   	    CharCodes[CharCodes["CarriageReturn"] = 13] = "CarriageReturn";
   	    CharCodes[CharCodes["Space"] = 32] = "Space";
   	    CharCodes[CharCodes["ExclamationMark"] = 33] = "ExclamationMark";
-  	    CharCodes[CharCodes["Num"] = 35] = "Num";
+  	    CharCodes[CharCodes["Number"] = 35] = "Number";
   	    CharCodes[CharCodes["Amp"] = 38] = "Amp";
   	    CharCodes[CharCodes["SingleQuote"] = 39] = "SingleQuote";
   	    CharCodes[CharCodes["DoubleQuote"] = 34] = "DoubleQuote";
@@ -4286,6 +4663,7 @@
   	        this.running = true;
   	        /** The offset of the current buffer. */
   	        this.offset = 0;
+  	        this.currentSequence = undefined;
   	        this.sequenceIndex = 0;
   	        this.trieIndex = 0;
   	        this.trieCurrent = 0;
@@ -4552,6 +4930,7 @@
   	        // Skip everything until ">"
   	        if (c === CharCodes.Gt || this.fastForwardTo(CharCodes.Gt)) {
   	            this.state = State.Text;
+  	            this.baseState = State.Text;
   	            this.sectionStart = this.index + 1;
   	        }
   	    };
@@ -4723,7 +5102,7 @@
   	        // Start excess with 1 to include the '&'
   	        this.entityExcess = 1;
   	        this.entityResult = 0;
-  	        if (c === CharCodes.Num) {
+  	        if (c === CharCodes.Number) {
   	            this.state = State.BeforeNumericEntity;
   	        }
   	        else if (c === CharCodes.Amp) ;
@@ -4777,13 +5156,15 @@
   	        var valueLength = (this.entityTrie[this.entityResult] & decode_js_1.BinTrieFlags.VALUE_LENGTH) >>
   	            14;
   	        switch (valueLength) {
-  	            case 1:
+  	            case 1: {
   	                this.emitCodePoint(this.entityTrie[this.entityResult] &
   	                    ~decode_js_1.BinTrieFlags.VALUE_LENGTH);
   	                break;
-  	            case 2:
+  	            }
+  	            case 2: {
   	                this.emitCodePoint(this.entityTrie[this.entityResult + 1]);
   	                break;
+  	            }
   	            case 3: {
   	                this.emitCodePoint(this.entityTrie[this.entityResult + 1]);
   	                this.emitCodePoint(this.entityTrie[this.entityResult + 2]);
@@ -4889,93 +5270,123 @@
   	    Tokenizer.prototype.parse = function () {
   	        while (this.shouldContinue()) {
   	            var c = this.buffer.charCodeAt(this.index - this.offset);
-  	            if (this.state === State.Text) {
-  	                this.stateText(c);
-  	            }
-  	            else if (this.state === State.SpecialStartSequence) {
-  	                this.stateSpecialStartSequence(c);
-  	            }
-  	            else if (this.state === State.InSpecialTag) {
-  	                this.stateInSpecialTag(c);
-  	            }
-  	            else if (this.state === State.CDATASequence) {
-  	                this.stateCDATASequence(c);
-  	            }
-  	            else if (this.state === State.InAttributeValueDq) {
-  	                this.stateInAttributeValueDoubleQuotes(c);
-  	            }
-  	            else if (this.state === State.InAttributeName) {
-  	                this.stateInAttributeName(c);
-  	            }
-  	            else if (this.state === State.InCommentLike) {
-  	                this.stateInCommentLike(c);
-  	            }
-  	            else if (this.state === State.InSpecialComment) {
-  	                this.stateInSpecialComment(c);
-  	            }
-  	            else if (this.state === State.BeforeAttributeName) {
-  	                this.stateBeforeAttributeName(c);
-  	            }
-  	            else if (this.state === State.InTagName) {
-  	                this.stateInTagName(c);
-  	            }
-  	            else if (this.state === State.InClosingTagName) {
-  	                this.stateInClosingTagName(c);
-  	            }
-  	            else if (this.state === State.BeforeTagName) {
-  	                this.stateBeforeTagName(c);
-  	            }
-  	            else if (this.state === State.AfterAttributeName) {
-  	                this.stateAfterAttributeName(c);
-  	            }
-  	            else if (this.state === State.InAttributeValueSq) {
-  	                this.stateInAttributeValueSingleQuotes(c);
-  	            }
-  	            else if (this.state === State.BeforeAttributeValue) {
-  	                this.stateBeforeAttributeValue(c);
-  	            }
-  	            else if (this.state === State.BeforeClosingTagName) {
-  	                this.stateBeforeClosingTagName(c);
-  	            }
-  	            else if (this.state === State.AfterClosingTagName) {
-  	                this.stateAfterClosingTagName(c);
-  	            }
-  	            else if (this.state === State.BeforeSpecialS) {
-  	                this.stateBeforeSpecialS(c);
-  	            }
-  	            else if (this.state === State.InAttributeValueNq) {
-  	                this.stateInAttributeValueNoQuotes(c);
-  	            }
-  	            else if (this.state === State.InSelfClosingTag) {
-  	                this.stateInSelfClosingTag(c);
-  	            }
-  	            else if (this.state === State.InDeclaration) {
-  	                this.stateInDeclaration(c);
-  	            }
-  	            else if (this.state === State.BeforeDeclaration) {
-  	                this.stateBeforeDeclaration(c);
-  	            }
-  	            else if (this.state === State.BeforeComment) {
-  	                this.stateBeforeComment(c);
-  	            }
-  	            else if (this.state === State.InProcessingInstruction) {
-  	                this.stateInProcessingInstruction(c);
-  	            }
-  	            else if (this.state === State.InNamedEntity) {
-  	                this.stateInNamedEntity(c);
-  	            }
-  	            else if (this.state === State.BeforeEntity) {
-  	                this.stateBeforeEntity(c);
-  	            }
-  	            else if (this.state === State.InHexEntity) {
-  	                this.stateInHexEntity(c);
-  	            }
-  	            else if (this.state === State.InNumericEntity) {
-  	                this.stateInNumericEntity(c);
-  	            }
-  	            else {
-  	                // `this._state === State.BeforeNumericEntity`
-  	                this.stateBeforeNumericEntity(c);
+  	            switch (this.state) {
+  	                case State.Text: {
+  	                    this.stateText(c);
+  	                    break;
+  	                }
+  	                case State.SpecialStartSequence: {
+  	                    this.stateSpecialStartSequence(c);
+  	                    break;
+  	                }
+  	                case State.InSpecialTag: {
+  	                    this.stateInSpecialTag(c);
+  	                    break;
+  	                }
+  	                case State.CDATASequence: {
+  	                    this.stateCDATASequence(c);
+  	                    break;
+  	                }
+  	                case State.InAttributeValueDq: {
+  	                    this.stateInAttributeValueDoubleQuotes(c);
+  	                    break;
+  	                }
+  	                case State.InAttributeName: {
+  	                    this.stateInAttributeName(c);
+  	                    break;
+  	                }
+  	                case State.InCommentLike: {
+  	                    this.stateInCommentLike(c);
+  	                    break;
+  	                }
+  	                case State.InSpecialComment: {
+  	                    this.stateInSpecialComment(c);
+  	                    break;
+  	                }
+  	                case State.BeforeAttributeName: {
+  	                    this.stateBeforeAttributeName(c);
+  	                    break;
+  	                }
+  	                case State.InTagName: {
+  	                    this.stateInTagName(c);
+  	                    break;
+  	                }
+  	                case State.InClosingTagName: {
+  	                    this.stateInClosingTagName(c);
+  	                    break;
+  	                }
+  	                case State.BeforeTagName: {
+  	                    this.stateBeforeTagName(c);
+  	                    break;
+  	                }
+  	                case State.AfterAttributeName: {
+  	                    this.stateAfterAttributeName(c);
+  	                    break;
+  	                }
+  	                case State.InAttributeValueSq: {
+  	                    this.stateInAttributeValueSingleQuotes(c);
+  	                    break;
+  	                }
+  	                case State.BeforeAttributeValue: {
+  	                    this.stateBeforeAttributeValue(c);
+  	                    break;
+  	                }
+  	                case State.BeforeClosingTagName: {
+  	                    this.stateBeforeClosingTagName(c);
+  	                    break;
+  	                }
+  	                case State.AfterClosingTagName: {
+  	                    this.stateAfterClosingTagName(c);
+  	                    break;
+  	                }
+  	                case State.BeforeSpecialS: {
+  	                    this.stateBeforeSpecialS(c);
+  	                    break;
+  	                }
+  	                case State.InAttributeValueNq: {
+  	                    this.stateInAttributeValueNoQuotes(c);
+  	                    break;
+  	                }
+  	                case State.InSelfClosingTag: {
+  	                    this.stateInSelfClosingTag(c);
+  	                    break;
+  	                }
+  	                case State.InDeclaration: {
+  	                    this.stateInDeclaration(c);
+  	                    break;
+  	                }
+  	                case State.BeforeDeclaration: {
+  	                    this.stateBeforeDeclaration(c);
+  	                    break;
+  	                }
+  	                case State.BeforeComment: {
+  	                    this.stateBeforeComment(c);
+  	                    break;
+  	                }
+  	                case State.InProcessingInstruction: {
+  	                    this.stateInProcessingInstruction(c);
+  	                    break;
+  	                }
+  	                case State.InNamedEntity: {
+  	                    this.stateInNamedEntity(c);
+  	                    break;
+  	                }
+  	                case State.BeforeEntity: {
+  	                    this.stateBeforeEntity(c);
+  	                    break;
+  	                }
+  	                case State.InHexEntity: {
+  	                    this.stateInHexEntity(c);
+  	                    break;
+  	                }
+  	                case State.InNumericEntity: {
+  	                    this.stateInNumericEntity(c);
+  	                    break;
+  	                }
+  	                default: {
+  	                    // `this._state === State.BeforeNumericEntity`
+  	                    this.stateBeforeNumericEntity(c);
+  	                }
   	            }
   	            this.index++;
   	        }
@@ -5221,10 +5632,10 @@
            * Entities can be emitted on the character, or directly after.
            * We use the section start here to get accurate indices.
            */
-          var idx = this.tokenizer.getSectionStart();
-          this.endIndex = idx - 1;
+          var index = this.tokenizer.getSectionStart();
+          this.endIndex = index - 1;
           (_b = (_a = this.cbs).ontext) === null || _b === void 0 ? void 0 : _b.call(_a, (0, decode_js_1.fromCodePoint)(cp));
-          this.startIndex = idx;
+          this.startIndex = index;
       };
       Parser.prototype.isVoidElement = function (name) {
           return !this.options.xmlMode && voidElements.has(name);
@@ -5246,8 +5657,8 @@
           if (impliesClose) {
               while (this.stack.length > 0 &&
                   impliesClose.has(this.stack[this.stack.length - 1])) {
-                  var el = this.stack.pop();
-                  (_b = (_a = this.cbs).onclosetag) === null || _b === void 0 ? void 0 : _b.call(_a, el, true);
+                  var element = this.stack.pop();
+                  (_b = (_a = this.cbs).onclosetag) === null || _b === void 0 ? void 0 : _b.call(_a, element, true);
               }
           }
           if (!this.isVoidElement(name)) {
@@ -5382,8 +5793,8 @@
           this.attribvalue = "";
       };
       Parser.prototype.getInstructionName = function (value) {
-          var idx = value.search(reNameEnd);
-          var name = idx < 0 ? value : value.substr(0, idx);
+          var index = value.search(reNameEnd);
+          var name = index < 0 ? value : value.substr(0, index);
           if (this.lowerCaseTagNames) {
               name = name.toLowerCase();
           }
@@ -5443,7 +5854,7 @@
           if (this.cbs.onclosetag) {
               // Set the end index for all remaining tags
               this.endIndex = this.startIndex;
-              for (var i = this.stack.length; i > 0; this.cbs.onclosetag(this.stack[--i], true))
+              for (var index = this.stack.length; index > 0; this.cbs.onclosetag(this.stack[--index], true))
                   ;
           }
           (_b = (_a = this.cbs).onend) === null || _b === void 0 ? void 0 : _b.call(_a);
@@ -5481,12 +5892,12 @@
           while (start - this.bufferOffset >= this.buffers[0].length) {
               this.shiftBuffer();
           }
-          var str = this.buffers[0].slice(start - this.bufferOffset, end - this.bufferOffset);
+          var slice = this.buffers[0].slice(start - this.bufferOffset, end - this.bufferOffset);
           while (end - this.bufferOffset > this.buffers[0].length) {
               this.shiftBuffer();
-              str += this.buffers[0].slice(0, end - this.bufferOffset);
+              slice += this.buffers[0].slice(0, end - this.bufferOffset);
           }
-          return str;
+          return slice;
       };
       Parser.prototype.shiftBuffer = function () {
           this.bufferOffset += this.buffers[0].length;
@@ -5518,7 +5929,7 @@
       Parser.prototype.end = function (chunk) {
           var _a, _b;
           if (this.ended) {
-              (_b = (_a = this.cbs).onerror) === null || _b === void 0 ? void 0 : _b.call(_a, Error(".end() after done!"));
+              (_b = (_a = this.cbs).onerror) === null || _b === void 0 ? void 0 : _b.call(_a, new Error(".end() after done!"));
               return;
           }
           if (chunk)
@@ -5624,7 +6035,7 @@
   	/** Type for <![CDATA[ ... ]]> */
   	exports.CDATA = ElementType.CDATA;
   	/** Type for <!doctype ...> */
-  	exports.Doctype = ElementType.Doctype;
+  	exports.Doctype = ElementType.Doctype; 
   } (lib$3));
 
   var node$1 = {};
@@ -6267,7 +6678,7 @@
   	    return DomHandler;
   	}());
   	exports.DomHandler = DomHandler;
-  	exports.default = DomHandler;
+  	exports.default = DomHandler; 
   } (lib$4));
 
   var lib$2 = {};
@@ -6358,6 +6769,16 @@
   	 * @param data String to escape.
   	 */
   	exports.escape = encodeXML;
+  	/**
+  	 * Creates a function that escapes all characters matched by the given regular
+  	 * expression using the given map of characters to escape to their entities.
+  	 *
+  	 * @param regex Regular expression to match characters to escape.
+  	 * @param map Map of characters to escape to their entities.
+  	 *
+  	 * @returns Function that escapes all characters matched by the given regular
+  	 * expression using the given map of characters to escape to their entities.
+  	 */
   	function getEscaper(regex, map) {
   	    return function escape(data) {
   	        var match;
@@ -6367,7 +6788,7 @@
   	            if (lastIdx !== match.index) {
   	                result += data.substring(lastIdx, match.index);
   	            }
-  	            // We know that this chararcter will be in the map.
+  	            // We know that this character will be in the map.
   	            result += map.get(match[0].charCodeAt(0));
   	            // Every match will be of length 1
   	            lastIdx = match.index + 1;
@@ -6470,7 +6891,7 @@
               }
               next = next.v;
           }
-          // We might have a tree node without a value; skip and use a numeric entitiy.
+          // We might have a tree node without a value; skip and use a numeric entity.
           if (next !== undefined) {
               ret += next;
               lastIdx = i + 1;
@@ -6487,7 +6908,7 @@
 
   (function (exports) {
   	Object.defineProperty(exports, "__esModule", { value: true });
-  	exports.decodeXMLStrict = exports.decodeHTML5Strict = exports.decodeHTML4Strict = exports.decodeHTML5 = exports.decodeHTML4 = exports.decodeHTMLStrict = exports.decodeHTML = exports.decodeXML = exports.encodeHTML5 = exports.encodeHTML4 = exports.encodeNonAsciiHTML = exports.encodeHTML = exports.escapeText = exports.escapeAttribute = exports.escapeUTF8 = exports.escape = exports.encodeXML = exports.encode = exports.decodeStrict = exports.decode = exports.EncodingMode = exports.DecodingMode = exports.EntityLevel = void 0;
+  	exports.decodeXMLStrict = exports.decodeHTML5Strict = exports.decodeHTML4Strict = exports.decodeHTML5 = exports.decodeHTML4 = exports.decodeHTMLAttribute = exports.decodeHTMLStrict = exports.decodeHTML = exports.decodeXML = exports.DecodingMode = exports.EntityDecoder = exports.encodeHTML5 = exports.encodeHTML4 = exports.encodeNonAsciiHTML = exports.encodeHTML = exports.escapeText = exports.escapeAttribute = exports.escapeUTF8 = exports.escape = exports.encodeXML = exports.encode = exports.decodeStrict = exports.decode = exports.EncodingMode = exports.EntityLevel = void 0;
   	var decode_js_1 = decode;
   	var encode_js_1 = encode$1;
   	var escape_js_1 = _escape;
@@ -6499,14 +6920,6 @@
   	    /** Support HTML entities, which are a superset of XML entities. */
   	    EntityLevel[EntityLevel["HTML"] = 1] = "HTML";
   	})(EntityLevel = exports.EntityLevel || (exports.EntityLevel = {}));
-  	/** Determines whether some entities are allowed to be written without a trailing `;`. */
-  	var DecodingMode;
-  	(function (DecodingMode) {
-  	    /** Support legacy HTML entities. */
-  	    DecodingMode[DecodingMode["Legacy"] = 0] = "Legacy";
-  	    /** Do not support legacy HTML entities. */
-  	    DecodingMode[DecodingMode["Strict"] = 1] = "Strict";
-  	})(DecodingMode = exports.DecodingMode || (exports.DecodingMode = {}));
   	var EncodingMode;
   	(function (EncodingMode) {
   	    /**
@@ -6544,12 +6957,10 @@
   	 */
   	function decode$1(data, options) {
   	    if (options === void 0) { options = EntityLevel.XML; }
-  	    var opts = typeof options === "number" ? { level: options } : options;
-  	    if (opts.level === EntityLevel.HTML) {
-  	        if (opts.mode === DecodingMode.Strict) {
-  	            return (0, decode_js_1.decodeHTMLStrict)(data);
-  	        }
-  	        return (0, decode_js_1.decodeHTML)(data);
+  	    var level = typeof options === "number" ? options : options.level;
+  	    if (level === EntityLevel.HTML) {
+  	        var mode = typeof options === "object" ? options.mode : undefined;
+  	        return (0, decode_js_1.decodeHTML)(data, mode);
   	    }
   	    return (0, decode_js_1.decodeXML)(data);
   	}
@@ -6562,15 +6973,11 @@
   	 * @deprecated Use `decode` with the `mode` set to `Strict`.
   	 */
   	function decodeStrict(data, options) {
+  	    var _a;
   	    if (options === void 0) { options = EntityLevel.XML; }
   	    var opts = typeof options === "number" ? { level: options } : options;
-  	    if (opts.level === EntityLevel.HTML) {
-  	        if (opts.mode === DecodingMode.Legacy) {
-  	            return (0, decode_js_1.decodeHTML)(data);
-  	        }
-  	        return (0, decode_js_1.decodeHTMLStrict)(data);
-  	    }
-  	    return (0, decode_js_1.decodeXML)(data);
+  	    (_a = opts.mode) !== null && _a !== void 0 ? _a : (opts.mode = decode_js_1.DecodingMode.Strict);
+  	    return decode$1(data, opts);
   	}
   	exports.decodeStrict = decodeStrict;
   	/**
@@ -6612,9 +7019,12 @@
   	Object.defineProperty(exports, "encodeHTML4", { enumerable: true, get: function () { return encode_js_2.encodeHTML; } });
   	Object.defineProperty(exports, "encodeHTML5", { enumerable: true, get: function () { return encode_js_2.encodeHTML; } });
   	var decode_js_2 = decode;
+  	Object.defineProperty(exports, "EntityDecoder", { enumerable: true, get: function () { return decode_js_2.EntityDecoder; } });
+  	Object.defineProperty(exports, "DecodingMode", { enumerable: true, get: function () { return decode_js_2.DecodingMode; } });
   	Object.defineProperty(exports, "decodeXML", { enumerable: true, get: function () { return decode_js_2.decodeXML; } });
   	Object.defineProperty(exports, "decodeHTML", { enumerable: true, get: function () { return decode_js_2.decodeHTML; } });
   	Object.defineProperty(exports, "decodeHTMLStrict", { enumerable: true, get: function () { return decode_js_2.decodeHTMLStrict; } });
+  	Object.defineProperty(exports, "decodeHTMLAttribute", { enumerable: true, get: function () { return decode_js_2.decodeHTMLAttribute; } });
   	// Legacy aliases (deprecated)
   	Object.defineProperty(exports, "decodeHTML4", { enumerable: true, get: function () { return decode_js_2.decodeHTML; } });
   	Object.defineProperty(exports, "decodeHTML5", { enumerable: true, get: function () { return decode_js_2.decodeHTML; } });
@@ -6991,7 +7401,7 @@
   }
   stringify$6.getInnerHTML = getInnerHTML;
   /**
-   * Get a node's inner text. Same as `textContent`, but inserts newlines for `<br>` tags.
+   * Get a node's inner text. Same as `textContent`, but inserts newlines for `<br>` tags. Ignores comments.
    *
    * @category Stringify
    * @deprecated Use `textContent` instead.
@@ -7011,7 +7421,7 @@
   }
   stringify$6.getText = getText;
   /**
-   * Get a node's text content.
+   * Get a node's text content. Ignores comments.
    *
    * @category Stringify
    * @param node Node to get the text content of.
@@ -7030,7 +7440,7 @@
   }
   stringify$6.textContent = textContent;
   /**
-   * Get a node's inner text.
+   * Get a node's inner text, ignoring `<script>` and `<style>` tags. Ignores comments.
    *
    * @category Stringify
    * @param node Node to get the inner text of.
@@ -7070,7 +7480,7 @@
    *
    * @category Traversal
    * @param elem Node to get the parent of.
-   * @returns `elem`'s parent node.
+   * @returns `elem`'s parent node, or `null` if `elem` is a root node.
    */
   function getParent(elem) {
       return elem.parent || null;
@@ -7085,7 +7495,7 @@
    *
    * @category Traversal
    * @param elem Element to get the siblings of.
-   * @returns `elem`'s siblings.
+   * @returns `elem`'s siblings, including `elem`.
    */
   function getSiblings(elem) {
       var _a, _b;
@@ -7148,7 +7558,8 @@
    *
    * @category Traversal
    * @param elem The element to get the next sibling of.
-   * @returns `elem`'s next sibling that is a tag.
+   * @returns `elem`'s next sibling that is a tag, or `null` if there is no next
+   * sibling.
    */
   function nextElementSibling(elem) {
       var _a;
@@ -7163,7 +7574,8 @@
    *
    * @category Traversal
    * @param elem The element to get the previous sibling of.
-   * @returns `elem`'s previous sibling that is a tag.
+   * @returns `elem`'s previous sibling that is a tag, or `null` if there is no
+   * previous sibling.
    */
   function prevElementSibling(elem) {
       var _a;
@@ -7191,8 +7603,14 @@
           elem.next.prev = elem.prev;
       if (elem.parent) {
           var childs = elem.parent.children;
-          childs.splice(childs.lastIndexOf(elem), 1);
+          var childsIndex = childs.lastIndexOf(elem);
+          if (childsIndex >= 0) {
+              childs.splice(childsIndex, 1);
+          }
       }
+      elem.next = null;
+      elem.prev = null;
+      elem.parent = null;
   }
   manipulation.removeElement = removeElement;
   /**
@@ -7223,15 +7641,15 @@
    * Append a child to an element.
    *
    * @category Manipulation
-   * @param elem The element to append to.
+   * @param parent The element to append to.
    * @param child The element to be added as a child.
    */
-  function appendChild(elem, child) {
+  function appendChild(parent, child) {
       removeElement(child);
       child.next = null;
-      child.parent = elem;
-      if (elem.children.push(child) > 1) {
-          var sibling = elem.children[elem.children.length - 2];
+      child.parent = parent;
+      if (parent.children.push(child) > 1) {
+          var sibling = parent.children[parent.children.length - 2];
           sibling.next = child;
           child.prev = sibling;
       }
@@ -7271,15 +7689,15 @@
    * Prepend a child to an element.
    *
    * @category Manipulation
-   * @param elem The element to prepend before.
+   * @param parent The element to prepend before.
    * @param child The element to be added as a child.
    */
-  function prependChild(elem, child) {
+  function prependChild(parent, child) {
       removeElement(child);
-      child.parent = elem;
+      child.parent = parent;
       child.prev = null;
-      if (elem.children.unshift(child) !== 1) {
-          var sibling = elem.children[1];
+      if (parent.children.unshift(child) !== 1) {
+          var sibling = parent.children[1];
           sibling.prev = child;
           child.next = sibling;
       }
@@ -7318,7 +7736,7 @@
   querying.findAll = querying.existsOne = querying.findOne = querying.findOneChild = querying.find = querying.filter = void 0;
   var domhandler_1$1 = lib$4;
   /**
-   * Search a node and its children for nodes passing a test function.
+   * Search a node and its children for nodes passing a test function. If `node` is not an array, it will be wrapped in one.
    *
    * @category Querying
    * @param test Function to test nodes on.
@@ -7330,13 +7748,11 @@
   function filter$2(test, node, recurse, limit) {
       if (recurse === void 0) { recurse = true; }
       if (limit === void 0) { limit = Infinity; }
-      if (!Array.isArray(node))
-          node = [node];
-      return find(test, node, recurse, limit);
+      return find(test, Array.isArray(node) ? node : [node], recurse, limit);
   }
   querying.filter = filter$2;
   /**
-   * Search an array of node and its children for nodes passing a test function.
+   * Search an array of nodes and their children for nodes passing a test function.
    *
    * @category Querying
    * @param test Function to test nodes on.
@@ -7347,26 +7763,42 @@
    */
   function find(test, nodes, recurse, limit) {
       var result = [];
-      for (var _i = 0, nodes_1 = nodes; _i < nodes_1.length; _i++) {
-          var elem = nodes_1[_i];
+      /** Stack of the arrays we are looking at. */
+      var nodeStack = [nodes];
+      /** Stack of the indices within the arrays. */
+      var indexStack = [0];
+      for (;;) {
+          // First, check if the current array has any more elements to look at.
+          if (indexStack[0] >= nodeStack[0].length) {
+              // If we have no more arrays to look at, we are done.
+              if (indexStack.length === 1) {
+                  return result;
+              }
+              // Otherwise, remove the current array from the stack.
+              nodeStack.shift();
+              indexStack.shift();
+              // Loop back to the start to continue with the next array.
+              continue;
+          }
+          var elem = nodeStack[0][indexStack[0]++];
           if (test(elem)) {
               result.push(elem);
               if (--limit <= 0)
-                  break;
+                  return result;
           }
           if (recurse && (0, domhandler_1$1.hasChildren)(elem) && elem.children.length > 0) {
-              var children = find(test, elem.children, recurse, limit);
-              result.push.apply(result, children);
-              limit -= children.length;
-              if (limit <= 0)
-                  break;
+              /*
+               * Add the children to the stack. We are depth-first, so this is
+               * the next array we look at.
+               */
+              indexStack.unshift(0);
+              nodeStack.unshift(elem.children);
           }
       }
-      return result;
   }
   querying.find = find;
   /**
-   * Finds the first element inside of an array that matches a test function.
+   * Finds the first element inside of an array that matches a test function. This is an alias for `Array.prototype.find`.
    *
    * @category Querying
    * @param test Function to test nodes on.
@@ -7383,29 +7815,31 @@
    *
    * @category Querying
    * @param test Function to test nodes on.
-   * @param nodes Array of nodes to search.
+   * @param nodes Node or array of nodes to search.
    * @param recurse Also consider child nodes.
-   * @returns The first child node that passes `test`.
+   * @returns The first node that passes `test`.
    */
   function findOne(test, nodes, recurse) {
       if (recurse === void 0) { recurse = true; }
       var elem = null;
       for (var i = 0; i < nodes.length && !elem; i++) {
-          var checked = nodes[i];
-          if (!(0, domhandler_1$1.isTag)(checked)) {
+          var node = nodes[i];
+          if (!(0, domhandler_1$1.isTag)(node)) {
               continue;
           }
-          else if (test(checked)) {
-              elem = checked;
+          else if (test(node)) {
+              elem = node;
           }
-          else if (recurse && checked.children.length > 0) {
-              elem = findOne(test, checked.children, true);
+          else if (recurse && node.children.length > 0) {
+              elem = findOne(test, node.children, true);
           }
       }
       return elem;
   }
   querying.findOne = findOne;
   /**
+   * Checks if a tree of nodes contains at least one node passing a test.
+   *
    * @category Querying
    * @param test Function to test nodes on.
    * @param nodes Array of nodes to search.
@@ -7414,14 +7848,12 @@
   function existsOne(test, nodes) {
       return nodes.some(function (checked) {
           return (0, domhandler_1$1.isTag)(checked) &&
-              (test(checked) ||
-                  (checked.children.length > 0 &&
-                      existsOne(test, checked.children)));
+              (test(checked) || existsOne(test, checked.children));
       });
   }
   querying.existsOne = existsOne;
   /**
-   * Search and array of nodes and its children for elements passing a test function.
+   * Search an array of nodes and their children for elements passing a test function.
    *
    * Same as `find`, but limited to elements and with less options, leading to reduced complexity.
    *
@@ -7431,19 +7863,30 @@
    * @returns All nodes passing `test`.
    */
   function findAll(test, nodes) {
-      var _a;
       var result = [];
-      var stack = nodes.filter(domhandler_1$1.isTag);
-      var elem;
-      while ((elem = stack.shift())) {
-          var children = (_a = elem.children) === null || _a === void 0 ? void 0 : _a.filter(domhandler_1$1.isTag);
-          if (children && children.length > 0) {
-              stack.unshift.apply(stack, children);
+      var nodeStack = [nodes];
+      var indexStack = [0];
+      for (;;) {
+          if (indexStack[0] >= nodeStack[0].length) {
+              if (nodeStack.length === 1) {
+                  return result;
+              }
+              // Otherwise, remove the current array from the stack.
+              nodeStack.shift();
+              indexStack.shift();
+              // Loop back to the start to continue with the next array.
+              continue;
           }
+          var elem = nodeStack[0][indexStack[0]++];
+          if (!(0, domhandler_1$1.isTag)(elem))
+              continue;
           if (test(elem))
               result.push(elem);
+          if (elem.children.length > 0) {
+              indexStack.unshift(0);
+              nodeStack.unshift(elem.children);
+          }
       }
-      return result;
   }
   querying.findAll = findAll;
 
@@ -7453,6 +7896,9 @@
   legacy.getElementsByTagType = legacy.getElementsByTagName = legacy.getElementById = legacy.getElements = legacy.testElement = void 0;
   var domhandler_1 = lib$4;
   var querying_js_1 = querying;
+  /**
+   * A map of functions to check nodes against.
+   */
   var Checks = {
       tag_name: function (name) {
           if (typeof name === "function") {
@@ -7477,6 +7923,9 @@
       },
   };
   /**
+   * Returns a function to check whether a node has an attribute with a particular
+   * value.
+   *
    * @param attrib Attribute to check.
    * @param value Attribute value to look for.
    * @returns A function to check whether the a node has an attribute with a
@@ -7489,6 +7938,9 @@
       return function (elem) { return (0, domhandler_1.isTag)(elem) && elem.attribs[attrib] === value; };
   }
   /**
+   * Returns a function that returns `true` if either of the input functions
+   * returns `true` for a node.
+   *
    * @param a First function to combine.
    * @param b Second function to combine.
    * @returns A function taking a node and returning `true` if either of the input
@@ -7498,9 +7950,12 @@
       return function (elem) { return a(elem) || b(elem); };
   }
   /**
+   * Returns a function that executes all checks in `options` and returns `true`
+   * if any of them match a node.
+   *
    * @param options An object describing nodes to look for.
-   * @returns A function executing all checks in `options` and returning `true` if
-   *   any of them match a node.
+   * @returns A function that executes all checks in `options` and returns `true`
+   *   if any of them match a node.
    */
   function compileTest(options) {
       var funcs = Object.keys(options).map(function (key) {
@@ -7512,6 +7967,8 @@
       return funcs.length === 0 ? null : funcs.reduce(combineFuncs);
   }
   /**
+   * Checks whether a node matches the description in `options`.
+   *
    * @category Legacy Query Functions
    * @param options An object describing nodes to look for.
    * @param node The element to test.
@@ -7523,6 +7980,8 @@
   }
   legacy.testElement = testElement;
   /**
+   * Returns all nodes that match `options`.
+   *
    * @category Legacy Query Functions
    * @param options An object describing nodes to look for.
    * @param nodes Nodes to search through.
@@ -7537,6 +7996,8 @@
   }
   legacy.getElements = getElements;
   /**
+   * Returns the node with the supplied ID.
+   *
    * @category Legacy Query Functions
    * @param id The unique ID attribute value to look for.
    * @param nodes Nodes to search through.
@@ -7551,6 +8012,8 @@
   }
   legacy.getElementById = getElementById;
   /**
+   * Returns all nodes with the supplied `tagName`.
+   *
    * @category Legacy Query Functions
    * @param tagName Tag name to search for.
    * @param nodes Nodes to search through.
@@ -7565,6 +8028,8 @@
   }
   legacy.getElementsByTagName = getElementsByTagName;
   /**
+   * Returns all nodes with the supplied `type`.
+   *
    * @category Legacy Query Functions
    * @param type Element type to look for.
    * @param nodes Nodes to search through.
@@ -7586,11 +8051,12 @@
   	exports.uniqueSort = exports.compareDocumentPosition = exports.DocumentPosition = exports.removeSubsets = void 0;
   	var domhandler_1 = lib$4;
   	/**
-  	 * Given an array of nodes, remove any member that is contained by another.
+  	 * Given an array of nodes, remove any member that is contained by another
+  	 * member.
   	 *
   	 * @category Helpers
   	 * @param nodes Nodes to filter.
-  	 * @returns Remaining nodes that aren't subtrees of each other.
+  	 * @returns Remaining nodes that aren't contained by other nodes.
   	 */
   	function removeSubsets(nodes) {
   	    var idx = nodes.length;
@@ -7632,8 +8098,8 @@
   	    DocumentPosition[DocumentPosition["CONTAINED_BY"] = 16] = "CONTAINED_BY";
   	})(DocumentPosition = exports.DocumentPosition || (exports.DocumentPosition = {}));
   	/**
-  	 * Compare the position of one node against another node in any other document.
-  	 * The return value is a bitmask with the values from {@link DocumentPosition}.
+  	 * Compare the position of one node against another node in any other document,
+  	 * returning a bitmask with the values from {@link DocumentPosition}.
   	 *
   	 * Document order:
   	 * > There is an ordering, document order, defined on all the nodes in the
@@ -7698,9 +8164,9 @@
   	}
   	exports.compareDocumentPosition = compareDocumentPosition;
   	/**
-  	 * Sort an array of nodes based on their relative position in the document and
-  	 * remove any duplicate nodes. If the array contains nodes that do not belong to
-  	 * the same document, sort order is unspecified.
+  	 * Sort an array of nodes based on their relative position in the document,
+  	 * removing any duplicate nodes. If the array contains nodes that do not belong
+  	 * to the same document, sort order is unspecified.
   	 *
   	 * @category Helpers
   	 * @param nodes Array of DOM nodes.
@@ -7811,7 +8277,7 @@
               addConditionally(entry, "title", "title", children);
               addConditionally(entry, "link", "link", children);
               addConditionally(entry, "description", "description", children);
-              var pubDate = fetch("pubDate", children);
+              var pubDate = fetch("pubDate", children) || fetch("dc:date", children);
               if (pubDate)
                   entry.pubDate = new Date(pubDate);
               return entry;
@@ -7979,12 +8445,15 @@
   	    return (mod && mod.__esModule) ? mod : { "default": mod };
   	};
   	Object.defineProperty(exports, "__esModule", { value: true });
-  	exports.DefaultHandler = exports.DomUtils = exports.parseFeed = exports.getFeed = exports.ElementType = exports.Tokenizer = exports.createDomStream = exports.parseDOM = exports.parseDocument = exports.DomHandler = exports.Parser = void 0;
+  	exports.DomUtils = exports.parseFeed = exports.getFeed = exports.ElementType = exports.Tokenizer = exports.createDomStream = exports.parseDOM = exports.parseDocument = exports.DefaultHandler = exports.DomHandler = exports.Parser = void 0;
   	var Parser_js_1 = Parser$3;
-  	Object.defineProperty(exports, "Parser", { enumerable: true, get: function () { return Parser_js_1.Parser; } });
+  	var Parser_js_2 = Parser$3;
+  	Object.defineProperty(exports, "Parser", { enumerable: true, get: function () { return Parser_js_2.Parser; } });
   	var domhandler_1 = lib$4;
-  	Object.defineProperty(exports, "DomHandler", { enumerable: true, get: function () { return domhandler_1.DomHandler; } });
-  	Object.defineProperty(exports, "DefaultHandler", { enumerable: true, get: function () { return domhandler_1.DomHandler; } });
+  	var domhandler_2 = lib$4;
+  	Object.defineProperty(exports, "DomHandler", { enumerable: true, get: function () { return domhandler_2.DomHandler; } });
+  	// Old name for DomHandler
+  	Object.defineProperty(exports, "DefaultHandler", { enumerable: true, get: function () { return domhandler_2.DomHandler; } });
   	// Helper methods
   	/**
   	 * Parses the data, returns the resulting document.
@@ -8015,12 +8484,12 @@
   	/**
   	 * Creates a parser instance, with an attached DOM handler.
   	 *
-  	 * @param cb A callback that will be called once parsing has been completed.
+  	 * @param callback A callback that will be called once parsing has been completed.
   	 * @param options Optional options for the parser and DOM builder.
-  	 * @param elementCb An optional callback that will be called every time a tag has been completed inside of the DOM.
+  	 * @param elementCallback An optional callback that will be called every time a tag has been completed inside of the DOM.
   	 */
-  	function createDomStream(cb, options, elementCb) {
-  	    var handler = new domhandler_1.DomHandler(cb, options, elementCb);
+  	function createDomStream(callback, options, elementCallback) {
+  	    var handler = new domhandler_1.DomHandler(callback, options, elementCallback);
   	    return new Parser_js_1.Parser(handler, options);
   	}
   	exports.createDomStream = createDomStream;
@@ -8030,10 +8499,11 @@
   	 * All of the following exports exist for backwards-compatibility.
   	 * They should probably be removed eventually.
   	 */
-  	var ElementType = __importStar(lib$3);
-  	exports.ElementType = ElementType;
+  	exports.ElementType = __importStar(lib$3);
   	var domutils_1 = lib$2;
-  	Object.defineProperty(exports, "getFeed", { enumerable: true, get: function () { return domutils_1.getFeed; } });
+  	var domutils_2 = lib$2;
+  	Object.defineProperty(exports, "getFeed", { enumerable: true, get: function () { return domutils_2.getFeed; } });
+  	var parseFeedDefaultOptions = { xmlMode: true };
   	/**
   	 * Parse a feed.
   	 *
@@ -8041,7 +8511,7 @@
   	 * @param options Optionally, options for parsing. When using this, you should set `xmlMode` to `true`.
   	 */
   	function parseFeed(feed, options) {
-  	    if (options === void 0) { options = { xmlMode: true }; }
+  	    if (options === void 0) { options = parseFeedDefaultOptions; }
   	    return (0, domutils_1.getFeed)(parseDOM(feed, options));
   	}
   	exports.parseFeed = parseFeed;
@@ -8152,7 +8622,7 @@
   function getEnumerableOwnPropertySymbols(target) {
   	return Object.getOwnPropertySymbols
   		? Object.getOwnPropertySymbols(target).filter(function(symbol) {
-  			return target.propertyIsEnumerable(symbol)
+  			return Object.propertyIsEnumerable.call(target, symbol)
   		})
   		: []
   }
@@ -8232,11 +8702,7 @@
 
   var cjs = deepmerge_1;
 
-  var parseSrcsetExports = {};
-  var parseSrcset$1 = {
-    get exports(){ return parseSrcsetExports; },
-    set exports(v){ parseSrcsetExports = v; },
-  };
+  var parseSrcset$1 = {exports: {}};
 
   /**
    * Srcset Parser
@@ -8562,8 +9028,10 @@
   			} // (close parseDescriptors fn)
 
   		}
-  	}));
+  	})); 
   } (parseSrcset$1));
+
+  var parseSrcsetExports = parseSrcset$1.exports;
 
   var global$1 = (typeof global !== "undefined" ? global :
     typeof self !== "undefined" ? self :
@@ -8791,16 +9259,14 @@
     uptime: uptime
   };
 
-  var picocolors_browserExports = {};
-  var picocolors_browser = {
-    get exports(){ return picocolors_browserExports; },
-    set exports(v){ picocolors_browserExports = v; },
-  };
+  var picocolors_browser = {exports: {}};
 
   var x=String;
   var create=function() {return {isColorSupported:false,reset:x,bold:x,dim:x,italic:x,underline:x,inverse:x,hidden:x,strikethrough:x,black:x,red:x,green:x,yellow:x,blue:x,magenta:x,cyan:x,white:x,gray:x,bgBlack:x,bgRed:x,bgGreen:x,bgYellow:x,bgBlue:x,bgMagenta:x,bgCyan:x,bgWhite:x}};
   picocolors_browser.exports=create();
-  picocolors_browserExports.createColors = create;
+  picocolors_browser.exports.createColors = create;
+
+  var picocolors_browserExports = picocolors_browser.exports;
 
   var _nodeResolve_empty = {};
 
@@ -8875,7 +9341,7 @@
 
       let mark, aside;
       if (color) {
-        let { bold, red, gray } = pico.createColors(true);
+        let { bold, gray, red } = pico.createColors(true);
         mark = text => bold(red(text));
         aside = text => gray(text);
       } else {
@@ -8917,17 +9383,17 @@
   symbols.my = Symbol('my');
 
   const DEFAULT_RAW = {
-    colon: ': ',
-    indent: '    ',
-    beforeDecl: '\n',
-    beforeRule: '\n',
-    beforeOpen: ' ',
+    after: '\n',
     beforeClose: '\n',
     beforeComment: '\n',
-    after: '\n',
-    emptyBody: '',
+    beforeDecl: '\n',
+    beforeOpen: ' ',
+    beforeRule: '\n',
+    colon: ': ',
     commentLeft: ' ',
     commentRight: ' ',
+    emptyBody: '',
+    indent: '    ',
     semicolon: false
   };
 
@@ -8938,54 +9404,6 @@
   let Stringifier$2 = class Stringifier {
     constructor(builder) {
       this.builder = builder;
-    }
-
-    stringify(node, semicolon) {
-      /* c8 ignore start */
-      if (!this[node.type]) {
-        throw new Error(
-          'Unknown AST node type ' +
-            node.type +
-            '. ' +
-            'Maybe you need to change PostCSS stringifier.'
-        )
-      }
-      /* c8 ignore stop */
-      this[node.type](node, semicolon);
-    }
-
-    document(node) {
-      this.body(node);
-    }
-
-    root(node) {
-      this.body(node);
-      if (node.raws.after) this.builder(node.raws.after);
-    }
-
-    comment(node) {
-      let left = this.raw(node, 'left', 'commentLeft');
-      let right = this.raw(node, 'right', 'commentRight');
-      this.builder('/*' + left + node.text + right + '*/', node);
-    }
-
-    decl(node, semicolon) {
-      let between = this.raw(node, 'between', 'colon');
-      let string = node.prop + between + this.rawValue(node, 'value');
-
-      if (node.important) {
-        string += node.raws.important || ' !important';
-      }
-
-      if (semicolon) string += ';';
-      this.builder(string, node);
-    }
-
-    rule(node) {
-      this.block(node, this.rawValue(node, 'selector'));
-      if (node.raws.ownSemicolon) {
-        this.builder(node.raws.ownSemicolon, node, 'end');
-      }
     }
 
     atrule(node, semicolon) {
@@ -9006,20 +9424,33 @@
       }
     }
 
-    body(node) {
-      let last = node.nodes.length - 1;
-      while (last > 0) {
-        if (node.nodes[last].type !== 'comment') break
-        last -= 1;
+    beforeAfter(node, detect) {
+      let value;
+      if (node.type === 'decl') {
+        value = this.raw(node, null, 'beforeDecl');
+      } else if (node.type === 'comment') {
+        value = this.raw(node, null, 'beforeComment');
+      } else if (detect === 'before') {
+        value = this.raw(node, null, 'beforeRule');
+      } else {
+        value = this.raw(node, null, 'beforeClose');
       }
 
-      let semicolon = this.raw(node, 'semicolon');
-      for (let i = 0; i < node.nodes.length; i++) {
-        let child = node.nodes[i];
-        let before = this.raw(child, 'before');
-        if (before) this.builder(before);
-        this.stringify(child, last !== i || semicolon);
+      let buf = node.parent;
+      let depth = 0;
+      while (buf && buf.type !== 'root') {
+        depth += 1;
+        buf = buf.parent;
       }
+
+      if (value.includes('\n')) {
+        let indent = this.raw(node, null, 'indent');
+        if (indent.length) {
+          for (let step = 0; step < depth; step++) value += indent;
+        }
+      }
+
+      return value
     }
 
     block(node, start) {
@@ -9036,6 +9467,44 @@
 
       if (after) this.builder(after);
       this.builder('}', node, 'end');
+    }
+
+    body(node) {
+      let last = node.nodes.length - 1;
+      while (last > 0) {
+        if (node.nodes[last].type !== 'comment') break
+        last -= 1;
+      }
+
+      let semicolon = this.raw(node, 'semicolon');
+      for (let i = 0; i < node.nodes.length; i++) {
+        let child = node.nodes[i];
+        let before = this.raw(child, 'before');
+        if (before) this.builder(before);
+        this.stringify(child, last !== i || semicolon);
+      }
+    }
+
+    comment(node) {
+      let left = this.raw(node, 'left', 'commentLeft');
+      let right = this.raw(node, 'right', 'commentRight');
+      this.builder('/*' + left + node.text + right + '*/', node);
+    }
+
+    decl(node, semicolon) {
+      let between = this.raw(node, 'between', 'colon');
+      let string = node.prop + between + this.rawValue(node, 'value');
+
+      if (node.important) {
+        string += node.raws.important || ' !important';
+      }
+
+      if (semicolon) string += ';';
+      this.builder(string, node);
+    }
+
+    document(node) {
+      this.body(node);
     }
 
     raw(node, own, detect) {
@@ -9092,42 +9561,20 @@
       return value
     }
 
-    rawSemicolon(root) {
+    rawBeforeClose(root) {
       let value;
       root.walk(i => {
-        if (i.nodes && i.nodes.length && i.last.type === 'decl') {
-          value = i.raws.semicolon;
-          if (typeof value !== 'undefined') return false
-        }
-      });
-      return value
-    }
-
-    rawEmptyBody(root) {
-      let value;
-      root.walk(i => {
-        if (i.nodes && i.nodes.length === 0) {
-          value = i.raws.after;
-          if (typeof value !== 'undefined') return false
-        }
-      });
-      return value
-    }
-
-    rawIndent(root) {
-      if (root.raws.indent) return root.raws.indent
-      let value;
-      root.walk(i => {
-        let p = i.parent;
-        if (p && p !== root && p.parent && p.parent === root) {
-          if (typeof i.raws.before !== 'undefined') {
-            let parts = i.raws.before.split('\n');
-            value = parts[parts.length - 1];
-            value = value.replace(/\S/g, '');
+        if (i.nodes && i.nodes.length > 0) {
+          if (typeof i.raws.after !== 'undefined') {
+            value = i.raws.after;
+            if (value.includes('\n')) {
+              value = value.replace(/[^\n]+$/, '');
+            }
             return false
           }
         }
       });
+      if (value) value = value.replace(/\S/g, '');
       return value
     }
 
@@ -9169,6 +9616,17 @@
       return value
     }
 
+    rawBeforeOpen(root) {
+      let value;
+      root.walk(i => {
+        if (i.type !== 'decl') {
+          value = i.raws.between;
+          if (typeof value !== 'undefined') return false
+        }
+      });
+      return value
+    }
+
     rawBeforeRule(root) {
       let value;
       root.walk(i => {
@@ -9186,34 +9644,6 @@
       return value
     }
 
-    rawBeforeClose(root) {
-      let value;
-      root.walk(i => {
-        if (i.nodes && i.nodes.length > 0) {
-          if (typeof i.raws.after !== 'undefined') {
-            value = i.raws.after;
-            if (value.includes('\n')) {
-              value = value.replace(/[^\n]+$/, '');
-            }
-            return false
-          }
-        }
-      });
-      if (value) value = value.replace(/\S/g, '');
-      return value
-    }
-
-    rawBeforeOpen(root) {
-      let value;
-      root.walk(i => {
-        if (i.type !== 'decl') {
-          value = i.raws.between;
-          if (typeof value !== 'undefined') return false
-        }
-      });
-      return value
-    }
-
     rawColon(root) {
       let value;
       root.walkDecls(i => {
@@ -9225,32 +9655,42 @@
       return value
     }
 
-    beforeAfter(node, detect) {
+    rawEmptyBody(root) {
       let value;
-      if (node.type === 'decl') {
-        value = this.raw(node, null, 'beforeDecl');
-      } else if (node.type === 'comment') {
-        value = this.raw(node, null, 'beforeComment');
-      } else if (detect === 'before') {
-        value = this.raw(node, null, 'beforeRule');
-      } else {
-        value = this.raw(node, null, 'beforeClose');
-      }
-
-      let buf = node.parent;
-      let depth = 0;
-      while (buf && buf.type !== 'root') {
-        depth += 1;
-        buf = buf.parent;
-      }
-
-      if (value.includes('\n')) {
-        let indent = this.raw(node, null, 'indent');
-        if (indent.length) {
-          for (let step = 0; step < depth; step++) value += indent;
+      root.walk(i => {
+        if (i.nodes && i.nodes.length === 0) {
+          value = i.raws.after;
+          if (typeof value !== 'undefined') return false
         }
-      }
+      });
+      return value
+    }
 
+    rawIndent(root) {
+      if (root.raws.indent) return root.raws.indent
+      let value;
+      root.walk(i => {
+        let p = i.parent;
+        if (p && p !== root && p.parent && p.parent === root) {
+          if (typeof i.raws.before !== 'undefined') {
+            let parts = i.raws.before.split('\n');
+            value = parts[parts.length - 1];
+            value = value.replace(/\S/g, '');
+            return false
+          }
+        }
+      });
+      return value
+    }
+
+    rawSemicolon(root) {
+      let value;
+      root.walk(i => {
+        if (i.nodes && i.nodes.length && i.last.type === 'decl') {
+          value = i.raws.semicolon;
+          if (typeof value !== 'undefined') return false
+        }
+      });
       return value
     }
 
@@ -9262,6 +9702,32 @@
       }
 
       return value
+    }
+
+    root(node) {
+      this.body(node);
+      if (node.raws.after) this.builder(node.raws.after);
+    }
+
+    rule(node) {
+      this.block(node, this.rawValue(node, 'selector'));
+      if (node.raws.ownSemicolon) {
+        this.builder(node.raws.ownSemicolon, node, 'end');
+      }
+    }
+
+    stringify(node, semicolon) {
+      /* c8 ignore start */
+      if (!this[node.type]) {
+        throw new Error(
+          'Unknown AST node type ' +
+            node.type +
+            '. ' +
+            'Maybe you need to change PostCSS stringifier.'
+        )
+      }
+      /* c8 ignore stop */
+      this[node.type](node, semicolon);
     }
   };
 
@@ -9332,40 +9798,21 @@
       }
     }
 
-    error(message, opts = {}) {
-      if (this.source) {
-        let { start, end } = this.rangeBy(opts);
-        return this.source.input.error(
-          message,
-          { line: start.line, column: start.column },
-          { line: end.line, column: end.column },
-          opts
-        )
+    addToError(error) {
+      error.postcssNode = this;
+      if (error.stack && this.source && /\n\s{4}at /.test(error.stack)) {
+        let s = this.source;
+        error.stack = error.stack.replace(
+          /\n\s{4}at /,
+          `$&${s.input.from}:${s.start.line}:${s.start.column}$&`
+        );
       }
-      return new CssSyntaxError$2(message)
+      return error
     }
 
-    warn(result, text, opts) {
-      let data = { node: this };
-      for (let i in opts) data[i] = opts[i];
-      return result.warn(text, data)
-    }
-
-    remove() {
-      if (this.parent) {
-        this.parent.removeChild(this);
-      }
-      this.parent = undefined;
+    after(add) {
+      this.parent.insertAfter(this, add);
       return this
-    }
-
-    toString(stringifier = stringify$4) {
-      if (stringifier.stringify) stringifier = stringifier.stringify;
-      let result = '';
-      stringifier(this, i => {
-        result += i;
-      });
-      return result
     }
 
     assign(overrides = {}) {
@@ -9373,6 +9820,17 @@
         this[name] = overrides[name];
       }
       return this
+    }
+
+    before(add) {
+      this.parent.insertBefore(this, add);
+      return this
+    }
+
+    cleanRaws(keepBetween) {
+      delete this.raws.before;
+      delete this.raws.after;
+      if (!keepBetween) delete this.raws.between;
     }
 
     clone(overrides = {}) {
@@ -9383,16 +9841,182 @@
       return cloned
     }
 
+    cloneAfter(overrides = {}) {
+      let cloned = this.clone(overrides);
+      this.parent.insertAfter(this, cloned);
+      return cloned
+    }
+
     cloneBefore(overrides = {}) {
       let cloned = this.clone(overrides);
       this.parent.insertBefore(this, cloned);
       return cloned
     }
 
-    cloneAfter(overrides = {}) {
-      let cloned = this.clone(overrides);
-      this.parent.insertAfter(this, cloned);
-      return cloned
+    error(message, opts = {}) {
+      if (this.source) {
+        let { end, start } = this.rangeBy(opts);
+        return this.source.input.error(
+          message,
+          { column: start.column, line: start.line },
+          { column: end.column, line: end.line },
+          opts
+        )
+      }
+      return new CssSyntaxError$2(message)
+    }
+
+    getProxyProcessor() {
+      return {
+        get(node, prop) {
+          if (prop === 'proxyOf') {
+            return node
+          } else if (prop === 'root') {
+            return () => node.root().toProxy()
+          } else {
+            return node[prop]
+          }
+        },
+
+        set(node, prop, value) {
+          if (node[prop] === value) return true
+          node[prop] = value;
+          if (
+            prop === 'prop' ||
+            prop === 'value' ||
+            prop === 'name' ||
+            prop === 'params' ||
+            prop === 'important' ||
+            /* c8 ignore next */
+            prop === 'text'
+          ) {
+            node.markDirty();
+          }
+          return true
+        }
+      }
+    }
+
+    markDirty() {
+      if (this[isClean$2]) {
+        this[isClean$2] = false;
+        let next = this;
+        while ((next = next.parent)) {
+          next[isClean$2] = false;
+        }
+      }
+    }
+
+    next() {
+      if (!this.parent) return undefined
+      let index = this.parent.index(this);
+      return this.parent.nodes[index + 1]
+    }
+
+    positionBy(opts, stringRepresentation) {
+      let pos = this.source.start;
+      if (opts.index) {
+        pos = this.positionInside(opts.index, stringRepresentation);
+      } else if (opts.word) {
+        stringRepresentation = this.toString();
+        let index = stringRepresentation.indexOf(opts.word);
+        if (index !== -1) pos = this.positionInside(index, stringRepresentation);
+      }
+      return pos
+    }
+
+    positionInside(index, stringRepresentation) {
+      let string = stringRepresentation || this.toString();
+      let column = this.source.start.column;
+      let line = this.source.start.line;
+
+      for (let i = 0; i < index; i++) {
+        if (string[i] === '\n') {
+          column = 1;
+          line += 1;
+        } else {
+          column += 1;
+        }
+      }
+
+      return { column, line }
+    }
+
+    prev() {
+      if (!this.parent) return undefined
+      let index = this.parent.index(this);
+      return this.parent.nodes[index - 1]
+    }
+
+    get proxyOf() {
+      return this
+    }
+
+    rangeBy(opts) {
+      let start = {
+        column: this.source.start.column,
+        line: this.source.start.line
+      };
+      let end = this.source.end
+        ? {
+          column: this.source.end.column + 1,
+          line: this.source.end.line
+        }
+        : {
+          column: start.column + 1,
+          line: start.line
+        };
+
+      if (opts.word) {
+        let stringRepresentation = this.toString();
+        let index = stringRepresentation.indexOf(opts.word);
+        if (index !== -1) {
+          start = this.positionInside(index, stringRepresentation);
+          end = this.positionInside(index + opts.word.length, stringRepresentation);
+        }
+      } else {
+        if (opts.start) {
+          start = {
+            column: opts.start.column,
+            line: opts.start.line
+          };
+        } else if (opts.index) {
+          start = this.positionInside(opts.index);
+        }
+
+        if (opts.end) {
+          end = {
+            column: opts.end.column,
+            line: opts.end.line
+          };
+        } else if (opts.endIndex) {
+          end = this.positionInside(opts.endIndex);
+        } else if (opts.index) {
+          end = this.positionInside(opts.index + 1);
+        }
+      }
+
+      if (
+        end.line < start.line ||
+        (end.line === start.line && end.column <= start.column)
+      ) {
+        end = { column: start.column + 1, line: start.line };
+      }
+
+      return { end, start }
+    }
+
+    raw(prop, defaultType) {
+      let str = new Stringifier();
+      return str.raw(this, prop, defaultType)
+    }
+
+    remove() {
+      if (this.parent) {
+        this.parent.removeChild(this);
+      }
+      this.parent = undefined;
+      return this
     }
 
     replaceWith(...nodes) {
@@ -9418,45 +10042,12 @@
       return this
     }
 
-    next() {
-      if (!this.parent) return undefined
-      let index = this.parent.index(this);
-      return this.parent.nodes[index + 1]
-    }
-
-    prev() {
-      if (!this.parent) return undefined
-      let index = this.parent.index(this);
-      return this.parent.nodes[index - 1]
-    }
-
-    before(add) {
-      this.parent.insertBefore(this, add);
-      return this
-    }
-
-    after(add) {
-      this.parent.insertAfter(this, add);
-      return this
-    }
-
     root() {
       let result = this;
       while (result.parent && result.parent.type !== 'document') {
         result = result.parent;
       }
       return result
-    }
-
-    raw(prop, defaultType) {
-      let str = new Stringifier();
-      return str.raw(this, prop, defaultType)
-    }
-
-    cleanRaws(keepBetween) {
-      delete this.raws.before;
-      delete this.raws.after;
-      if (!keepBetween) delete this.raws.between;
     }
 
     toJSON(_, inputs) {
@@ -9491,9 +10082,9 @@
             inputsNextIndex++;
           }
           fixed[name] = {
+            end: value.end,
             inputId,
-            start: value.start,
-            end: value.end
+            start: value.start
           };
         } else {
           fixed[name] = value;
@@ -9507,118 +10098,6 @@
       return fixed
     }
 
-    positionInside(index) {
-      let string = this.toString();
-      let column = this.source.start.column;
-      let line = this.source.start.line;
-
-      for (let i = 0; i < index; i++) {
-        if (string[i] === '\n') {
-          column = 1;
-          line += 1;
-        } else {
-          column += 1;
-        }
-      }
-
-      return { line, column }
-    }
-
-    positionBy(opts) {
-      let pos = this.source.start;
-      if (opts.index) {
-        pos = this.positionInside(opts.index);
-      } else if (opts.word) {
-        let index = this.toString().indexOf(opts.word);
-        if (index !== -1) pos = this.positionInside(index);
-      }
-      return pos
-    }
-
-    rangeBy(opts) {
-      let start = {
-        line: this.source.start.line,
-        column: this.source.start.column
-      };
-      let end = this.source.end
-        ? {
-            line: this.source.end.line,
-            column: this.source.end.column + 1
-          }
-        : {
-            line: start.line,
-            column: start.column + 1
-          };
-
-      if (opts.word) {
-        let index = this.toString().indexOf(opts.word);
-        if (index !== -1) {
-          start = this.positionInside(index);
-          end = this.positionInside(index + opts.word.length);
-        }
-      } else {
-        if (opts.start) {
-          start = {
-            line: opts.start.line,
-            column: opts.start.column
-          };
-        } else if (opts.index) {
-          start = this.positionInside(opts.index);
-        }
-
-        if (opts.end) {
-          end = {
-            line: opts.end.line,
-            column: opts.end.column
-          };
-        } else if (opts.endIndex) {
-          end = this.positionInside(opts.endIndex);
-        } else if (opts.index) {
-          end = this.positionInside(opts.index + 1);
-        }
-      }
-
-      if (
-        end.line < start.line ||
-        (end.line === start.line && end.column <= start.column)
-      ) {
-        end = { line: start.line, column: start.column + 1 };
-      }
-
-      return { start, end }
-    }
-
-    getProxyProcessor() {
-      return {
-        set(node, prop, value) {
-          if (node[prop] === value) return true
-          node[prop] = value;
-          if (
-            prop === 'prop' ||
-            prop === 'value' ||
-            prop === 'name' ||
-            prop === 'params' ||
-            prop === 'important' ||
-            /* c8 ignore next */
-            prop === 'text'
-          ) {
-            node.markDirty();
-          }
-          return true
-        },
-
-        get(node, prop) {
-          if (prop === 'proxyOf') {
-            return node
-          } else if (prop === 'root') {
-            return () => node.root().toProxy()
-          } else {
-            return node[prop]
-          }
-        }
-      }
-    }
-
     toProxy() {
       if (!this.proxyCache) {
         this.proxyCache = new Proxy(this, this.getProxyProcessor());
@@ -9626,30 +10105,19 @@
       return this.proxyCache
     }
 
-    addToError(error) {
-      error.postcssNode = this;
-      if (error.stack && this.source && /\n\s{4}at /.test(error.stack)) {
-        let s = this.source;
-        error.stack = error.stack.replace(
-          /\n\s{4}at /,
-          `$&${s.input.from}:${s.start.line}:${s.start.column}$&`
-        );
-      }
-      return error
+    toString(stringifier = stringify$4) {
+      if (stringifier.stringify) stringifier = stringifier.stringify;
+      let result = '';
+      stringifier(this, i => {
+        result += i;
+      });
+      return result
     }
 
-    markDirty() {
-      if (this[isClean$2]) {
-        this[isClean$2] = false;
-        let next = this;
-        while ((next = next.parent)) {
-          next[isClean$2] = false;
-        }
-      }
-    }
-
-    get proxyOf() {
-      return this
+    warn(result, text, opts) {
+      let data = { node: this };
+      for (let i in opts) data[i] = opts[i];
+      return result.warn(text, data)
     }
   };
 
@@ -13178,36 +13646,6 @@
       return this.consumerCache
     }
 
-    withContent() {
-      return !!(
-        this.consumer().sourcesContent &&
-        this.consumer().sourcesContent.length > 0
-      )
-    }
-
-    startWith(string, start) {
-      if (!string) return false
-      return string.substr(0, start.length) === start
-    }
-
-    getAnnotationURL(sourceMapString) {
-      return sourceMapString.replace(/^\/\*\s*# sourceMappingURL=/, '').trim()
-    }
-
-    loadAnnotation(css) {
-      let comments = css.match(/\/\*\s*# sourceMappingURL=/gm);
-      if (!comments) return
-
-      // sourceMappingURLs from comments, strings, etc.
-      let start = css.lastIndexOf(comments.pop());
-      let end = css.indexOf('*/', start);
-
-      if (start > -1 && end > -1) {
-        // Locate the last sourceMappingURL to avoid pickin
-        this.annotation = this.getAnnotationURL(css.substring(start, end));
-      }
-    }
-
     decodeInline(text) {
       let baseCharsetUri = /^data:application\/json;charset=utf-?8;base64,/;
       let baseUri = /^data:application\/json;base64,/;
@@ -13224,6 +13662,33 @@
 
       let encoding = text.match(/data:application\/json;([^,]+),/)[1];
       throw new Error('Unsupported source map encoding ' + encoding)
+    }
+
+    getAnnotationURL(sourceMapString) {
+      return sourceMapString.replace(/^\/\*\s*# sourceMappingURL=/, '').trim()
+    }
+
+    isMap(map) {
+      if (typeof map !== 'object') return false
+      return (
+        typeof map.mappings === 'string' ||
+        typeof map._mappings === 'string' ||
+        Array.isArray(map.sections)
+      )
+    }
+
+    loadAnnotation(css) {
+      let comments = css.match(/\/\*\s*# sourceMappingURL=/gm);
+      if (!comments) return
+
+      // sourceMappingURLs from comments, strings, etc.
+      let start = css.lastIndexOf(comments.pop());
+      let end = css.indexOf('*/', start);
+
+      if (start > -1 && end > -1) {
+        // Locate the last sourceMappingURL to avoid pickin
+        this.annotation = this.getAnnotationURL(css.substring(start, end));
+      }
     }
 
     loadFile(path) {
@@ -13271,12 +13736,15 @@
       }
     }
 
-    isMap(map) {
-      if (typeof map !== 'object') return false
-      return (
-        typeof map.mappings === 'string' ||
-        typeof map._mappings === 'string' ||
-        Array.isArray(map.sections)
+    startWith(string, start) {
+      if (!string) return false
+      return string.substr(0, start.length) === start
+    }
+
+    withContent() {
+      return !!(
+        this.consumer().sourcesContent &&
+        this.consumer().sourcesContent.length > 0
       )
     }
   };
@@ -13286,7 +13754,7 @@
 
   let { SourceMapConsumer: SourceMapConsumer$1, SourceMapGenerator: SourceMapGenerator$1 } = require$$0;
   let { fileURLToPath, pathToFileURL: pathToFileURL$1 } = require$$2;
-  let { resolve: resolve$1, isAbsolute } = require$$1$1;
+  let { isAbsolute, resolve: resolve$1 } = require$$1$1;
   let { nanoid } = nonSecure;
 
   let terminalHighlight = require$$0;
@@ -13344,6 +13812,74 @@
       if (this.map) this.map.file = this.from;
     }
 
+    error(message, line, column, opts = {}) {
+      let result, endLine, endColumn;
+
+      if (line && typeof line === 'object') {
+        let start = line;
+        let end = column;
+        if (typeof start.offset === 'number') {
+          let pos = this.fromOffset(start.offset);
+          line = pos.line;
+          column = pos.col;
+        } else {
+          line = start.line;
+          column = start.column;
+        }
+        if (typeof end.offset === 'number') {
+          let pos = this.fromOffset(end.offset);
+          endLine = pos.line;
+          endColumn = pos.col;
+        } else {
+          endLine = end.line;
+          endColumn = end.column;
+        }
+      } else if (!column) {
+        let pos = this.fromOffset(line);
+        line = pos.line;
+        column = pos.col;
+      }
+
+      let origin = this.origin(line, column, endLine, endColumn);
+      if (origin) {
+        result = new CssSyntaxError$1(
+          message,
+          origin.endLine === undefined
+            ? origin.line
+            : { column: origin.column, line: origin.line },
+          origin.endLine === undefined
+            ? origin.column
+            : { column: origin.endColumn, line: origin.endLine },
+          origin.source,
+          origin.file,
+          opts.plugin
+        );
+      } else {
+        result = new CssSyntaxError$1(
+          message,
+          endLine === undefined ? line : { column, line },
+          endLine === undefined ? column : { column: endColumn, line: endLine },
+          this.css,
+          this.file,
+          opts.plugin
+        );
+      }
+
+      result.input = { column, endColumn, endLine, line, source: this.css };
+      if (this.file) {
+        if (pathToFileURL$1) {
+          result.input.url = pathToFileURL$1(this.file).toString();
+        }
+        result.input.file = this.file;
+      }
+
+      return result
+    }
+
+    get from() {
+      return this.file || this.id
+    }
+
     fromOffset(offset) {
       let lastLine, lineToIndex;
       if (!this[fromOffsetCache]) {
@@ -13381,85 +13917,28 @@
         }
       }
       return {
-        line: min + 1,
-        col: offset - lineToIndex[min] + 1
+        col: offset - lineToIndex[min] + 1,
+        line: min + 1
       }
     }
 
-    error(message, line, column, opts = {}) {
-      let result, endLine, endColumn;
-
-      if (line && typeof line === 'object') {
-        let start = line;
-        let end = column;
-        if (typeof start.offset === 'number') {
-          let pos = this.fromOffset(start.offset);
-          line = pos.line;
-          column = pos.col;
-        } else {
-          line = start.line;
-          column = start.column;
-        }
-        if (typeof end.offset === 'number') {
-          let pos = this.fromOffset(end.offset);
-          endLine = pos.line;
-          endColumn = pos.col;
-        } else {
-          endLine = end.line;
-          endColumn = end.column;
-        }
-      } else if (!column) {
-        let pos = this.fromOffset(line);
-        line = pos.line;
-        column = pos.col;
+    mapResolve(file) {
+      if (/^\w+:\/\//.test(file)) {
+        return file
       }
-
-      let origin = this.origin(line, column, endLine, endColumn);
-      if (origin) {
-        result = new CssSyntaxError$1(
-          message,
-          origin.endLine === undefined
-            ? origin.line
-            : { line: origin.line, column: origin.column },
-          origin.endLine === undefined
-            ? origin.column
-            : { line: origin.endLine, column: origin.endColumn },
-          origin.source,
-          origin.file,
-          opts.plugin
-        );
-      } else {
-        result = new CssSyntaxError$1(
-          message,
-          endLine === undefined ? line : { line, column },
-          endLine === undefined ? column : { line: endLine, column: endColumn },
-          this.css,
-          this.file,
-          opts.plugin
-        );
-      }
-
-      result.input = { line, column, endLine, endColumn, source: this.css };
-      if (this.file) {
-        if (pathToFileURL$1) {
-          result.input.url = pathToFileURL$1(this.file).toString();
-        }
-        result.input.file = this.file;
-      }
-
-      return result
+      return resolve$1(this.map.consumer().sourceRoot || this.map.root || '.', file)
     }
 
     origin(line, column, endLine, endColumn) {
       if (!this.map) return false
       let consumer = this.map.consumer();
 
-      let from = consumer.originalPositionFor({ line, column });
+      let from = consumer.originalPositionFor({ column, line });
       if (!from.source) return false
 
       let to;
       if (typeof endLine === 'number') {
-        to = consumer.originalPositionFor({ line: endLine, column: endColumn });
+        to = consumer.originalPositionFor({ column: endColumn, line: endLine });
       }
 
       let fromUrl;
@@ -13474,11 +13953,11 @@
       }
 
       let result = {
-        url: fromUrl.toString(),
-        line: from.line,
         column: from.column,
+        endColumn: to && to.column,
         endLine: to && to.line,
-        endColumn: to && to.column
+        line: from.line,
+        url: fromUrl.toString()
       };
 
       if (fromUrl.protocol === 'file:') {
@@ -13494,17 +13973,6 @@
       if (source) result.source = source;
 
       return result
-    }
-
-    mapResolve(file) {
-      if (/^\w+:\/\//.test(file)) {
-        return file
-      }
-      return resolve$1(this.map.consumer().sourceRoot || this.map.root || '.', file)
-    }
-
-    get from() {
-      return this.file || this.id
     }
 
     toJSON() {
@@ -13532,7 +14000,7 @@
   }
 
   let { SourceMapConsumer, SourceMapGenerator } = require$$0;
-  let { dirname, resolve, relative, sep } = require$$1$1;
+  let { dirname, relative, resolve, sep } = require$$1$1;
   let { pathToFileURL } = require$$2;
 
   let Input$3 = input;
@@ -13548,140 +14016,6 @@
       this.opts = opts;
       this.css = cssString;
       this.usesFileUrls = !this.mapOpts.from && this.mapOpts.absolute;
-    }
-
-    isMap() {
-      if (typeof this.opts.map !== 'undefined') {
-        return !!this.opts.map
-      }
-      return this.previous().length > 0
-    }
-
-    previous() {
-      if (!this.previousMaps) {
-        this.previousMaps = [];
-        if (this.root) {
-          this.root.walk(node => {
-            if (node.source && node.source.input.map) {
-              let map = node.source.input.map;
-              if (!this.previousMaps.includes(map)) {
-                this.previousMaps.push(map);
-              }
-            }
-          });
-        } else {
-          let input = new Input$3(this.css, this.opts);
-          if (input.map) this.previousMaps.push(input.map);
-        }
-      }
-
-      return this.previousMaps
-    }
-
-    isInline() {
-      if (typeof this.mapOpts.inline !== 'undefined') {
-        return this.mapOpts.inline
-      }
-
-      let annotation = this.mapOpts.annotation;
-      if (typeof annotation !== 'undefined' && annotation !== true) {
-        return false
-      }
-
-      if (this.previous().length) {
-        return this.previous().some(i => i.inline)
-      }
-      return true
-    }
-
-    isSourcesContent() {
-      if (typeof this.mapOpts.sourcesContent !== 'undefined') {
-        return this.mapOpts.sourcesContent
-      }
-      if (this.previous().length) {
-        return this.previous().some(i => i.withContent())
-      }
-      return true
-    }
-
-    clearAnnotation() {
-      if (this.mapOpts.annotation === false) return
-
-      if (this.root) {
-        let node;
-        for (let i = this.root.nodes.length - 1; i >= 0; i--) {
-          node = this.root.nodes[i];
-          if (node.type !== 'comment') continue
-          if (node.text.indexOf('# sourceMappingURL=') === 0) {
-            this.root.removeChild(i);
-          }
-        }
-      } else if (this.css) {
-        this.css = this.css.replace(/(\n)?\/\*#[\S\s]*?\*\/$/gm, '');
-      }
-    }
-
-    setSourcesContent() {
-      let already = {};
-      if (this.root) {
-        this.root.walk(node => {
-          if (node.source) {
-            let from = node.source.input.from;
-            if (from && !already[from]) {
-              already[from] = true;
-              let fromUrl = this.usesFileUrls
-                ? this.toFileUrl(from)
-                : this.toUrl(this.path(from));
-              this.map.setSourceContent(fromUrl, node.source.input.css);
-            }
-          }
-        });
-      } else if (this.css) {
-        let from = this.opts.from
-          ? this.toUrl(this.path(this.opts.from))
-          : '<no source>';
-        this.map.setSourceContent(from, this.css);
-      }
-    }
-
-    applyPrevMaps() {
-      for (let prev of this.previous()) {
-        let from = this.toUrl(this.path(prev.file));
-        let root = prev.root || dirname(prev.file);
-        let map;
-
-        if (this.mapOpts.sourcesContent === false) {
-          map = new SourceMapConsumer(prev.text);
-          if (map.sourcesContent) {
-            map.sourcesContent = map.sourcesContent.map(() => null);
-          }
-        } else {
-          map = prev.consumer();
-        }
-
-        this.map.applySourceMap(map, from, this.toUrl(this.path(root)));
-      }
-    }
-
-    isAnnotation() {
-      if (this.isInline()) {
-        return true
-      }
-      if (typeof this.mapOpts.annotation !== 'undefined') {
-        return this.mapOpts.annotation
-      }
-      if (this.previous().length) {
-        return this.previous().some(i => i.annotation)
-      }
-      return true
-    }
-
-    toBase64(str) {
-      if (Buffer) {
-        return Buffer.from(str).toString('base64')
-      } else {
-        return window.btoa(unescape(encodeURIComponent(str)))
-      }
     }
 
     addAnnotation() {
@@ -13703,13 +14037,52 @@
       this.css += eol + '/*# sourceMappingURL=' + content + ' */';
     }
 
-    outputFile() {
-      if (this.opts.to) {
-        return this.path(this.opts.to)
-      } else if (this.opts.from) {
-        return this.path(this.opts.from)
+    applyPrevMaps() {
+      for (let prev of this.previous()) {
+        let from = this.toUrl(this.path(prev.file));
+        let root = prev.root || dirname(prev.file);
+        let map;
+
+        if (this.mapOpts.sourcesContent === false) {
+          map = new SourceMapConsumer(prev.text);
+          if (map.sourcesContent) {
+            map.sourcesContent = map.sourcesContent.map(() => null);
+          }
+        } else {
+          map = prev.consumer();
+        }
+
+        this.map.applySourceMap(map, from, this.toUrl(this.path(root)));
+      }
+    }
+
+    clearAnnotation() {
+      if (this.mapOpts.annotation === false) return
+
+      if (this.root) {
+        let node;
+        for (let i = this.root.nodes.length - 1; i >= 0; i--) {
+          node = this.root.nodes[i];
+          if (node.type !== 'comment') continue
+          if (node.text.indexOf('# sourceMappingURL=') === 0) {
+            this.root.removeChild(i);
+          }
+        }
+      } else if (this.css) {
+        this.css = this.css.replace(/(\n)?\/\*#[\S\s]*?\*\/$/gm, '');
+      }
+    }
+
+    generate() {
+      this.clearAnnotation();
+      if (pathAvailable && sourceMapAvailable && this.isMap()) {
+        return this.generateMap()
       } else {
-        return 'to.css'
+        let result = '';
+        this.stringify(this.root, i => {
+          result += i;
+        });
+        return [result]
       }
     }
 
@@ -13723,11 +14096,11 @@
       } else {
         this.map = new SourceMapGenerator({ file: this.outputFile() });
         this.map.addMapping({
+          generated: { column: 0, line: 1 },
+          original: { column: 0, line: 1 },
           source: this.opts.from
             ? this.toUrl(this.path(this.opts.from))
-            : '<no source>',
-          generated: { line: 1, column: 0 },
-          original: { line: 1, column: 0 }
+            : '<no source>'
         });
       }
 
@@ -13742,48 +14115,6 @@
       }
     }
 
-    path(file) {
-      if (file.indexOf('<') === 0) return file
-      if (/^\w+:\/\//.test(file)) return file
-      if (this.mapOpts.absolute) return file
-
-      let from = this.opts.to ? dirname(this.opts.to) : '.';
-
-      if (typeof this.mapOpts.annotation === 'string') {
-        from = dirname(resolve(from, this.mapOpts.annotation));
-      }
-
-      file = relative(from, file);
-      return file
-    }
-
-    toUrl(path) {
-      if (sep === '\\') {
-        path = path.replace(/\\/g, '/');
-      }
-      return encodeURI(path).replace(/[#?]/g, encodeURIComponent)
-    }
-
-    toFileUrl(path) {
-      if (pathToFileURL) {
-        return pathToFileURL(path).toString()
-      } else {
-        throw new Error(
-          '`map.absolute` option is not available in this PostCSS build'
-        )
-      }
-    }
-
-    sourcePath(node) {
-      if (this.mapOpts.from) {
-        return this.toUrl(this.mapOpts.from)
-      } else if (this.usesFileUrls) {
-        return this.toFileUrl(node.source.input.from)
-      } else {
-        return this.toUrl(this.path(node.source.input.from))
-      }
-    }
-
     generateString() {
       this.css = '';
       this.map = new SourceMapGenerator({ file: this.outputFile() });
@@ -13793,9 +14124,9 @@
 
       let noSource = '<no source>';
       let mapping = {
-        source: '',
-        generated: { line: 0, column: 0 },
-        original: { line: 0, column: 0 }
+        generated: { column: 0, line: 0 },
+        original: { column: 0, line: 0 },
+        source: ''
       };
 
       let lines, last;
@@ -13852,17 +14183,154 @@
       });
     }
 
-    generate() {
-      this.clearAnnotation();
-      if (pathAvailable && sourceMapAvailable && this.isMap()) {
-        return this.generateMap()
-      } else {
-        let result = '';
-        this.stringify(this.root, i => {
-          result += i;
-        });
-        return [result]
+    isAnnotation() {
+      if (this.isInline()) {
+        return true
       }
+      if (typeof this.mapOpts.annotation !== 'undefined') {
+        return this.mapOpts.annotation
+      }
+      if (this.previous().length) {
+        return this.previous().some(i => i.annotation)
+      }
+      return true
+    }
+
+    isInline() {
+      if (typeof this.mapOpts.inline !== 'undefined') {
+        return this.mapOpts.inline
+      }
+
+      let annotation = this.mapOpts.annotation;
+      if (typeof annotation !== 'undefined' && annotation !== true) {
+        return false
+      }
+
+      if (this.previous().length) {
+        return this.previous().some(i => i.inline)
+      }
+      return true
+    }
+
+    isMap() {
+      if (typeof this.opts.map !== 'undefined') {
+        return !!this.opts.map
+      }
+      return this.previous().length > 0
+    }
+
+    isSourcesContent() {
+      if (typeof this.mapOpts.sourcesContent !== 'undefined') {
+        return this.mapOpts.sourcesContent
+      }
+      if (this.previous().length) {
+        return this.previous().some(i => i.withContent())
+      }
+      return true
+    }
+
+    outputFile() {
+      if (this.opts.to) {
+        return this.path(this.opts.to)
+      } else if (this.opts.from) {
+        return this.path(this.opts.from)
+      } else {
+        return 'to.css'
+      }
+    }
+
+    path(file) {
+      if (file.indexOf('<') === 0) return file
+      if (/^\w+:\/\//.test(file)) return file
+      if (this.mapOpts.absolute) return file
+
+      let from = this.opts.to ? dirname(this.opts.to) : '.';
+
+      if (typeof this.mapOpts.annotation === 'string') {
+        from = dirname(resolve(from, this.mapOpts.annotation));
+      }
+
+      file = relative(from, file);
+      return file
+    }
+
+    previous() {
+      if (!this.previousMaps) {
+        this.previousMaps = [];
+        if (this.root) {
+          this.root.walk(node => {
+            if (node.source && node.source.input.map) {
+              let map = node.source.input.map;
+              if (!this.previousMaps.includes(map)) {
+                this.previousMaps.push(map);
+              }
+            }
+          });
+        } else {
+          let input = new Input$3(this.css, this.opts);
+          if (input.map) this.previousMaps.push(input.map);
+        }
+      }
+
+      return this.previousMaps
+    }
+
+    setSourcesContent() {
+      let already = {};
+      if (this.root) {
+        this.root.walk(node => {
+          if (node.source) {
+            let from = node.source.input.from;
+            if (from && !already[from]) {
+              already[from] = true;
+              let fromUrl = this.usesFileUrls
+                ? this.toFileUrl(from)
+                : this.toUrl(this.path(from));
+              this.map.setSourceContent(fromUrl, node.source.input.css);
+            }
+          }
+        });
+      } else if (this.css) {
+        let from = this.opts.from
+          ? this.toUrl(this.path(this.opts.from))
+          : '<no source>';
+        this.map.setSourceContent(from, this.css);
+      }
+    }
+
+    sourcePath(node) {
+      if (this.mapOpts.from) {
+        return this.toUrl(this.mapOpts.from)
+      } else if (this.usesFileUrls) {
+        return this.toFileUrl(node.source.input.from)
+      } else {
+        return this.toUrl(this.path(node.source.input.from))
+      }
+    }
+
+    toBase64(str) {
+      if (Buffer) {
+        return Buffer.from(str).toString('base64')
+      } else {
+        return window.btoa(unescape(encodeURIComponent(str)))
+      }
+    }
+
+    toFileUrl(path) {
+      if (pathToFileURL) {
+        return pathToFileURL(path).toString()
+      } else {
+        throw new Error(
+          '`map.absolute` option is not available in this PostCSS build'
+        )
+      }
+    }
+
+    toUrl(path) {
+      if (sep === '\\') {
+        path = path.replace(/\\/g, '/');
+      }
+      return encodeURI(path).replace(/[#?]/g, encodeURIComponent)
     }
   };
 
@@ -13905,10 +14373,22 @@
   }
 
   let Container$7 = class Container extends Node$1 {
-    push(child) {
-      child.parent = this;
-      this.proxyOf.nodes.push(child);
+    append(...children) {
+      for (let child of children) {
+        let nodes = this.normalize(child, this.last);
+        for (let node of nodes) this.proxyOf.nodes.push(node);
+      }
+
+      this.markDirty();
+
       return this
+    }
+
+    cleanRaws(keepBetween) {
+      super.cleanRaws(keepBetween);
+      if (this.nodes) {
+        for (let node of this.nodes) node.cleanRaws(keepBetween);
+      }
     }
 
     each(callback) {
@@ -13928,151 +14408,80 @@
       return result
     }
 
-    walk(callback) {
-      return this.each((child, i) => {
-        let result;
-        try {
-          result = callback(child, i);
-        } catch (e) {
-          throw child.addToError(e)
-        }
-        if (result !== false && child.walk) {
-          result = child.walk(callback);
-        }
-
-        return result
-      })
+    every(condition) {
+      return this.nodes.every(condition)
     }
 
-    walkDecls(prop, callback) {
-      if (!callback) {
-        callback = prop;
-        return this.walk((child, i) => {
-          if (child.type === 'decl') {
-            return callback(child, i)
+    get first() {
+      if (!this.proxyOf.nodes) return undefined
+      return this.proxyOf.nodes[0]
+    }
+
+    getIterator() {
+      if (!this.lastEach) this.lastEach = 0;
+      if (!this.indexes) this.indexes = {};
+
+      this.lastEach += 1;
+      let iterator = this.lastEach;
+      this.indexes[iterator] = 0;
+
+      return iterator
+    }
+
+    getProxyProcessor() {
+      return {
+        get(node, prop) {
+          if (prop === 'proxyOf') {
+            return node
+          } else if (!node[prop]) {
+            return node[prop]
+          } else if (
+            prop === 'each' ||
+            (typeof prop === 'string' && prop.startsWith('walk'))
+          ) {
+            return (...args) => {
+              return node[prop](
+                ...args.map(i => {
+                  if (typeof i === 'function') {
+                    return (child, index) => i(child.toProxy(), index)
+                  } else {
+                    return i
+                  }
+                })
+              )
+            }
+          } else if (prop === 'every' || prop === 'some') {
+            return cb => {
+              return node[prop]((child, ...other) =>
+                cb(child.toProxy(), ...other)
+              )
+            }
+          } else if (prop === 'root') {
+            return () => node.root().toProxy()
+          } else if (prop === 'nodes') {
+            return node.nodes.map(i => i.toProxy())
+          } else if (prop === 'first' || prop === 'last') {
+            return node[prop].toProxy()
+          } else {
+            return node[prop]
           }
-        })
-      }
-      if (prop instanceof RegExp) {
-        return this.walk((child, i) => {
-          if (child.type === 'decl' && prop.test(child.prop)) {
-            return callback(child, i)
+        },
+
+        set(node, prop, value) {
+          if (node[prop] === value) return true
+          node[prop] = value;
+          if (prop === 'name' || prop === 'params' || prop === 'selector') {
+            node.markDirty();
           }
-        })
-      }
-      return this.walk((child, i) => {
-        if (child.type === 'decl' && child.prop === prop) {
-          return callback(child, i)
-        }
-      })
-    }
-
-    walkRules(selector, callback) {
-      if (!callback) {
-        callback = selector;
-
-        return this.walk((child, i) => {
-          if (child.type === 'rule') {
-            return callback(child, i)
-          }
-        })
-      }
-      if (selector instanceof RegExp) {
-        return this.walk((child, i) => {
-          if (child.type === 'rule' && selector.test(child.selector)) {
-            return callback(child, i)
-          }
-        })
-      }
-      return this.walk((child, i) => {
-        if (child.type === 'rule' && child.selector === selector) {
-          return callback(child, i)
-        }
-      })
-    }
-
-    walkAtRules(name, callback) {
-      if (!callback) {
-        callback = name;
-        return this.walk((child, i) => {
-          if (child.type === 'atrule') {
-            return callback(child, i)
-          }
-        })
-      }
-      if (name instanceof RegExp) {
-        return this.walk((child, i) => {
-          if (child.type === 'atrule' && name.test(child.name)) {
-            return callback(child, i)
-          }
-        })
-      }
-      return this.walk((child, i) => {
-        if (child.type === 'atrule' && child.name === name) {
-          return callback(child, i)
-        }
-      })
-    }
-
-    walkComments(callback) {
-      return this.walk((child, i) => {
-        if (child.type === 'comment') {
-          return callback(child, i)
-        }
-      })
-    }
-
-    append(...children) {
-      for (let child of children) {
-        let nodes = this.normalize(child, this.last);
-        for (let node of nodes) this.proxyOf.nodes.push(node);
-      }
-
-      this.markDirty();
-
-      return this
-    }
-
-    prepend(...children) {
-      children = children.reverse();
-      for (let child of children) {
-        let nodes = this.normalize(child, this.first, 'prepend').reverse();
-        for (let node of nodes) this.proxyOf.nodes.unshift(node);
-        for (let id in this.indexes) {
-          this.indexes[id] = this.indexes[id] + nodes.length;
+          return true
         }
       }
-
-      this.markDirty();
-
-      return this
     }
 
-    cleanRaws(keepBetween) {
-      super.cleanRaws(keepBetween);
-      if (this.nodes) {
-        for (let node of this.nodes) node.cleanRaws(keepBetween);
-      }
-    }
-
-    insertBefore(exist, add) {
-      let existIndex = this.index(exist);
-      let type = existIndex === 0 ? 'prepend' : false;
-      let nodes = this.normalize(add, this.proxyOf.nodes[existIndex], type).reverse();
-      existIndex = this.index(exist);
-      for (let node of nodes) this.proxyOf.nodes.splice(existIndex, 0, node);
-
-      let index;
-      for (let id in this.indexes) {
-        index = this.indexes[id];
-        if (existIndex <= index) {
-          this.indexes[id] = index + nodes.length;
-        }
-      }
-
-      this.markDirty();
-
-      return this
+    index(child) {
+      if (typeof child === 'number') return child
+      if (child.proxyOf) child = child.proxyOf;
+      return this.proxyOf.nodes.indexOf(child)
     }
 
     insertAfter(exist, add) {
@@ -14094,68 +14503,24 @@
       return this
     }
 
-    removeChild(child) {
-      child = this.index(child);
-      this.proxyOf.nodes[child].parent = undefined;
-      this.proxyOf.nodes.splice(child, 1);
+    insertBefore(exist, add) {
+      let existIndex = this.index(exist);
+      let type = existIndex === 0 ? 'prepend' : false;
+      let nodes = this.normalize(add, this.proxyOf.nodes[existIndex], type).reverse();
+      existIndex = this.index(exist);
+      for (let node of nodes) this.proxyOf.nodes.splice(existIndex, 0, node);
 
       let index;
       for (let id in this.indexes) {
         index = this.indexes[id];
-        if (index >= child) {
-          this.indexes[id] = index - 1;
+        if (existIndex <= index) {
+          this.indexes[id] = index + nodes.length;
         }
       }
 
       this.markDirty();
 
       return this
-    }
-
-    removeAll() {
-      for (let node of this.proxyOf.nodes) node.parent = undefined;
-      this.proxyOf.nodes = [];
-
-      this.markDirty();
-
-      return this
-    }
-
-    replaceValues(pattern, opts, callback) {
-      if (!callback) {
-        callback = opts;
-        opts = {};
-      }
-
-      this.walkDecls(decl => {
-        if (opts.props && !opts.props.includes(decl.prop)) return
-        if (opts.fast && !decl.value.includes(opts.fast)) return
-
-        decl.value = decl.value.replace(pattern, callback);
-      });
-
-      this.markDirty();
-
-      return this
-    }
-
-    every(condition) {
-      return this.nodes.every(condition)
-    }
-
-    some(condition) {
-      return this.nodes.some(condition)
-    }
-
-    index(child) {
-      if (typeof child === 'number') return child
-      if (child.proxyOf) child = child.proxyOf;
-      return this.proxyOf.nodes.indexOf(child)
-    }
-
-    get first() {
-      if (!this.proxyOf.nodes) return undefined
-      return this.proxyOf.nodes[0]
     }
 
     get last() {
@@ -14213,65 +14578,168 @@
       return processed
     }
 
-    getProxyProcessor() {
-      return {
-        set(node, prop, value) {
-          if (node[prop] === value) return true
-          node[prop] = value;
-          if (prop === 'name' || prop === 'params' || prop === 'selector') {
-            node.markDirty();
-          }
-          return true
-        },
-
-        get(node, prop) {
-          if (prop === 'proxyOf') {
-            return node
-          } else if (!node[prop]) {
-            return node[prop]
-          } else if (
-            prop === 'each' ||
-            (typeof prop === 'string' && prop.startsWith('walk'))
-          ) {
-            return (...args) => {
-              return node[prop](
-                ...args.map(i => {
-                  if (typeof i === 'function') {
-                    return (child, index) => i(child.toProxy(), index)
-                  } else {
-                    return i
-                  }
-                })
-              )
-            }
-          } else if (prop === 'every' || prop === 'some') {
-            return cb => {
-              return node[prop]((child, ...other) =>
-                cb(child.toProxy(), ...other)
-              )
-            }
-          } else if (prop === 'root') {
-            return () => node.root().toProxy()
-          } else if (prop === 'nodes') {
-            return node.nodes.map(i => i.toProxy())
-          } else if (prop === 'first' || prop === 'last') {
-            return node[prop].toProxy()
-          } else {
-            return node[prop]
-          }
+    prepend(...children) {
+      children = children.reverse();
+      for (let child of children) {
+        let nodes = this.normalize(child, this.first, 'prepend').reverse();
+        for (let node of nodes) this.proxyOf.nodes.unshift(node);
+        for (let id in this.indexes) {
+          this.indexes[id] = this.indexes[id] + nodes.length;
         }
       }
+
+      this.markDirty();
+
+      return this
     }
 
-    getIterator() {
-      if (!this.lastEach) this.lastEach = 0;
-      if (!this.indexes) this.indexes = {};
+    push(child) {
+      child.parent = this;
+      this.proxyOf.nodes.push(child);
+      return this
+    }
 
-      this.lastEach += 1;
-      let iterator = this.lastEach;
-      this.indexes[iterator] = 0;
+    removeAll() {
+      for (let node of this.proxyOf.nodes) node.parent = undefined;
+      this.proxyOf.nodes = [];
 
-      return iterator
+      this.markDirty();
+
+      return this
+    }
+
+    removeChild(child) {
+      child = this.index(child);
+      this.proxyOf.nodes[child].parent = undefined;
+      this.proxyOf.nodes.splice(child, 1);
+
+      let index;
+      for (let id in this.indexes) {
+        index = this.indexes[id];
+        if (index >= child) {
+          this.indexes[id] = index - 1;
+        }
+      }
+
+      this.markDirty();
+
+      return this
+    }
+
+    replaceValues(pattern, opts, callback) {
+      if (!callback) {
+        callback = opts;
+        opts = {};
+      }
+
+      this.walkDecls(decl => {
+        if (opts.props && !opts.props.includes(decl.prop)) return
+        if (opts.fast && !decl.value.includes(opts.fast)) return
+
+        decl.value = decl.value.replace(pattern, callback);
+      });
+
+      this.markDirty();
+
+      return this
+    }
+
+    some(condition) {
+      return this.nodes.some(condition)
+    }
+
+    walk(callback) {
+      return this.each((child, i) => {
+        let result;
+        try {
+          result = callback(child, i);
+        } catch (e) {
+          throw child.addToError(e)
+        }
+        if (result !== false && child.walk) {
+          result = child.walk(callback);
+        }
+
+        return result
+      })
+    }
+
+    walkAtRules(name, callback) {
+      if (!callback) {
+        callback = name;
+        return this.walk((child, i) => {
+          if (child.type === 'atrule') {
+            return callback(child, i)
+          }
+        })
+      }
+      if (name instanceof RegExp) {
+        return this.walk((child, i) => {
+          if (child.type === 'atrule' && name.test(child.name)) {
+            return callback(child, i)
+          }
+        })
+      }
+      return this.walk((child, i) => {
+        if (child.type === 'atrule' && child.name === name) {
+          return callback(child, i)
+        }
+      })
+    }
+
+    walkComments(callback) {
+      return this.walk((child, i) => {
+        if (child.type === 'comment') {
+          return callback(child, i)
+        }
+      })
+    }
+
+    walkDecls(prop, callback) {
+      if (!callback) {
+        callback = prop;
+        return this.walk((child, i) => {
+          if (child.type === 'decl') {
+            return callback(child, i)
+          }
+        })
+      }
+      if (prop instanceof RegExp) {
+        return this.walk((child, i) => {
+          if (child.type === 'decl' && prop.test(child.prop)) {
+            return callback(child, i)
+          }
+        })
+      }
+      return this.walk((child, i) => {
+        if (child.type === 'decl' && child.prop === prop) {
+          return callback(child, i)
+        }
+      })
+    }
+
+    walkRules(selector, callback) {
+      if (!callback) {
+        callback = selector;
+
+        return this.walk((child, i) => {
+          if (child.type === 'rule') {
+            return callback(child, i)
+          }
+        })
+      }
+      if (selector instanceof RegExp) {
+        return this.walk((child, i) => {
+          if (child.type === 'rule' && selector.test(child.selector)) {
+            return callback(child, i)
+          }
+        })
+      }
+      return this.walk((child, i) => {
+        if (child.type === 'rule' && child.selector === selector) {
+          return callback(child, i)
+        }
+      })
     }
   };
 
@@ -14381,8 +14849,8 @@
     toString() {
       if (this.node) {
         return this.node.error(this.text, {
-          plugin: this.plugin,
           index: this.index,
+          plugin: this.plugin,
           word: this.word
         }).message
       }
@@ -14410,6 +14878,10 @@
       this.map = undefined;
     }
 
+    get content() {
+      return this.css
+    }
+
     toString() {
       return this.css
     }
@@ -14429,10 +14901,6 @@
 
     warnings() {
       return this.messages.filter(i => i.type === 'warning')
-    }
-
-    get content() {
-      return this.css
     }
   };
 
@@ -14698,8 +15166,8 @@
 
     return {
       back,
-      nextToken,
       endOfFile,
+      nextToken,
       position
     }
   };
@@ -14739,16 +15207,6 @@
       if (!this.nodes) this.nodes = [];
     }
 
-    removeChild(child, ignore) {
-      let index = this.index(child);
-
-      if (!ignore && index === 0 && this.nodes.length > 1) {
-        this.nodes[1].raws.before = this.nodes[index].raws.before;
-      }
-
-      return super.removeChild(child)
-    }
-
     normalize(child, sample, type) {
       let nodes = super.normalize(child);
 
@@ -14767,6 +15225,16 @@
       }
 
       return nodes
+    }
+
+    removeChild(child, ignore) {
+      let index = this.index(child);
+
+      if (!ignore && index === 0 && this.nodes.length > 1) {
+        this.nodes[1].raws.before = this.nodes[index].raws.before;
+      }
+
+      return super.removeChild(child)
     }
 
     toResult(opts = {}) {
@@ -14789,6 +15257,15 @@
   Container$4.registerRoot(Root$5);
 
   let list$2 = {
+    comma(string) {
+      return list$2.split(string, [','], true)
+    },
+
+    space(string) {
+      let spaces = [' ', '\n', '\t'];
+      return list$2.split(string, spaces)
+    },
+
     split(string, separators, last) {
       let array = [];
       let current = '';
@@ -14830,15 +15307,6 @@
 
       if (last || current !== '') array.push(current.trim());
       return array
-    },
-
-    space(string) {
-      let spaces = [' ', '\n', '\t'];
-      return list$2.split(string, spaces)
-    },
-
-    comma(string) {
-      return list$2.split(string, [','], true)
     }
   };
 
@@ -14902,49 +15370,140 @@
       this.customProperty = false;
 
       this.createTokenizer();
-      this.root.source = { input, start: { offset: 0, line: 1, column: 1 } };
+      this.root.source = { input, start: { column: 1, line: 1, offset: 0 } };
     }
 
-    createTokenizer() {
-      this.tokenizer = tokenizer(this.input);
-    }
+    atrule(token) {
+      let node = new AtRule$2();
+      node.name = token[1].slice(1);
+      if (node.name === '') {
+        this.unnamedAtrule(node, token);
+      }
+      this.init(node, token[2]);
 
-    parse() {
-      let token;
+      let type;
+      let prev;
+      let shift;
+      let last = false;
+      let open = false;
+      let params = [];
+      let brackets = [];
+
       while (!this.tokenizer.endOfFile()) {
         token = this.tokenizer.nextToken();
+        type = token[0];
 
-        switch (token[0]) {
-          case 'space':
-            this.spaces += token[1];
+        if (type === '(' || type === '[') {
+          brackets.push(type === '(' ? ')' : ']');
+        } else if (type === '{' && brackets.length > 0) {
+          brackets.push('}');
+        } else if (type === brackets[brackets.length - 1]) {
+          brackets.pop();
+        }
+
+        if (brackets.length === 0) {
+          if (type === ';') {
+            node.source.end = this.getPosition(token[2]);
+            this.semicolon = true;
             break
-
-          case ';':
-            this.freeSemicolon(token);
+          } else if (type === '{') {
+            open = true;
             break
-
-          case '}':
+          } else if (type === '}') {
+            if (params.length > 0) {
+              shift = params.length - 1;
+              prev = params[shift];
+              while (prev && prev[0] === 'space') {
+                prev = params[--shift];
+              }
+              if (prev) {
+                node.source.end = this.getPosition(prev[3] || prev[2]);
+              }
+            }
             this.end(token);
             break
+          } else {
+            params.push(token);
+          }
+        } else {
+          params.push(token);
+        }
 
-          case 'comment':
-            this.comment(token);
-            break
-
-          case 'at-word':
-            this.atrule(token);
-            break
-
-          case '{':
-            this.emptyRule(token);
-            break
-
-          default:
-            this.other(token);
-            break
+        if (this.tokenizer.endOfFile()) {
+          last = true;
+          break
         }
       }
-      this.endFile();
+
+      node.raws.between = this.spacesAndCommentsFromEnd(params);
+      if (params.length) {
+        node.raws.afterName = this.spacesAndCommentsFromStart(params);
+        this.raw(node, 'params', params);
+        if (last) {
+          token = params[params.length - 1];
+          node.source.end = this.getPosition(token[3] || token[2]);
+          this.spaces = node.raws.between;
+          node.raws.between = '';
+        }
+      } else {
+        node.raws.afterName = '';
+        node.params = '';
+      }
+
+      if (open) {
+        node.nodes = [];
+        this.current = node;
+      }
+    }
+
+    checkMissedSemicolon(tokens) {
+      let colon = this.colon(tokens);
+      if (colon === false) return
+
+      let founded = 0;
+      let token;
+      for (let j = colon - 1; j >= 0; j--) {
+        token = tokens[j];
+        if (token[0] !== 'space') {
+          founded += 1;
+          if (founded === 2) break
+        }
+      }
+      // If the token is a word, e.g. `!important`, `red` or any other valid property's value.
+      // Then we need to return the colon after that word token. [3] is the "end" colon of that word.
+      // And because we need it after that one we do +1 to get the next one.
+      throw this.input.error(
+        'Missed semicolon',
+        token[0] === 'word' ? token[3] + 1 : token[2]
+      )
+    }
+
+    colon(tokens) {
+      let brackets = 0;
+      let token, type, prev;
+      for (let [i, element] of tokens.entries()) {
+        token = element;
+        type = token[0];
+
+        if (type === '(') {
+          brackets += 1;
+        }
+        if (type === ')') {
+          brackets -= 1;
+        }
+        if (brackets === 0 && type === ':') {
+          if (!prev) {
+            this.doubleColon(token);
+          } else if (prev[0] === 'word' && prev[1] === 'progid') {
+            continue
+          } else {
+            return i
+          }
+        }
+
+        prev = token;
+      }
+      return false
     }
 
     comment(token) {
@@ -14965,86 +15524,8 @@
       }
     }
 
-    emptyRule(token) {
-      let node = new Rule$2();
-      this.init(node, token[2]);
-      node.selector = '';
-      node.raws.between = '';
-      this.current = node;
-    }
-
-    other(start) {
-      let end = false;
-      let type = null;
-      let colon = false;
-      let bracket = null;
-      let brackets = [];
-      let customProperty = start[1].startsWith('--');
-
-      let tokens = [];
-      let token = start;
-      while (token) {
-        type = token[0];
-        tokens.push(token);
-
-        if (type === '(' || type === '[') {
-          if (!bracket) bracket = token;
-          brackets.push(type === '(' ? ')' : ']');
-        } else if (customProperty && colon && type === '{') {
-          if (!bracket) bracket = token;
-          brackets.push('}');
-        } else if (brackets.length === 0) {
-          if (type === ';') {
-            if (colon) {
-              this.decl(tokens, customProperty);
-              return
-            } else {
-              break
-            }
-          } else if (type === '{') {
-            this.rule(tokens);
-            return
-          } else if (type === '}') {
-            this.tokenizer.back(tokens.pop());
-            end = true;
-            break
-          } else if (type === ':') {
-            colon = true;
-          }
-        } else if (type === brackets[brackets.length - 1]) {
-          brackets.pop();
-          if (brackets.length === 0) bracket = null;
-        }
-
-        token = this.tokenizer.nextToken();
-      }
-
-      if (this.tokenizer.endOfFile()) end = true;
-      if (brackets.length > 0) this.unclosedBracket(bracket);
-
-      if (end && colon) {
-        if (!customProperty) {
-          while (tokens.length) {
-            token = tokens[tokens.length - 1][0];
-            if (token !== 'space' && token !== 'comment') break
-            this.tokenizer.back(tokens.pop());
-          }
-        }
-        this.decl(tokens, customProperty);
-      } else {
-        this.unknownWord(tokens);
-      }
-    }
-
-    rule(tokens) {
-      tokens.pop();
-
-      let node = new Rule$2();
-      this.init(node, tokens[0][2]);
-
-      node.raws.between = this.spacesAndCommentsFromEnd(tokens);
-      this.raw(node, 'selector', tokens);
-      this.current = node;
+    createTokenizer() {
+      this.tokenizer = tokenizer(this.input);
     }
 
     decl(tokens, customProperty) {
@@ -15151,87 +15632,20 @@
       }
     }
 
-    atrule(token) {
-      let node = new AtRule$2();
-      node.name = token[1].slice(1);
-      if (node.name === '') {
-        this.unnamedAtrule(node, token);
-      }
+    doubleColon(token) {
+      throw this.input.error(
+        'Double colon',
+        { offset: token[2] },
+        { offset: token[2] + token[1].length }
+      )
+    }
+
+    emptyRule(token) {
+      let node = new Rule$2();
       this.init(node, token[2]);
-
-      let type;
-      let prev;
-      let shift;
-      let last = false;
-      let open = false;
-      let params = [];
-      let brackets = [];
-
-      while (!this.tokenizer.endOfFile()) {
-        token = this.tokenizer.nextToken();
-        type = token[0];
-
-        if (type === '(' || type === '[') {
-          brackets.push(type === '(' ? ')' : ']');
-        } else if (type === '{' && brackets.length > 0) {
-          brackets.push('}');
-        } else if (type === brackets[brackets.length - 1]) {
-          brackets.pop();
-        }
-
-        if (brackets.length === 0) {
-          if (type === ';') {
-            node.source.end = this.getPosition(token[2]);
-            this.semicolon = true;
-            break
-          } else if (type === '{') {
-            open = true;
-            break
-          } else if (type === '}') {
-            if (params.length > 0) {
-              shift = params.length - 1;
-              prev = params[shift];
-              while (prev && prev[0] === 'space') {
-                prev = params[--shift];
-              }
-              if (prev) {
-                node.source.end = this.getPosition(prev[3] || prev[2]);
-              }
-            }
-            this.end(token);
-            break
-          } else {
-            params.push(token);
-          }
-        } else {
-          params.push(token);
-        }
-
-        if (this.tokenizer.endOfFile()) {
-          last = true;
-          break
-        }
-      }
-
-      node.raws.between = this.spacesAndCommentsFromEnd(params);
-      if (params.length) {
-        node.raws.afterName = this.spacesAndCommentsFromStart(params);
-        this.raw(node, 'params', params);
-        if (last) {
-          token = params[params.length - 1];
-          node.source.end = this.getPosition(token[3] || token[2]);
-          this.spaces = node.raws.between;
-          node.raws.between = '';
-        }
-      } else {
-        node.raws.afterName = '';
-        node.params = '';
-      }
-
-      if (open) {
-        node.nodes = [];
-        this.current = node;
-      }
+      node.selector = '';
+      node.raws.between = '';
+      this.current = node;
     }
 
     end(token) {
@@ -15275,21 +15689,126 @@
     getPosition(offset) {
       let pos = this.input.fromOffset(offset);
       return {
-        offset,
+        column: pos.col,
         line: pos.line,
-        column: pos.col
+        offset
       }
     }
 
     init(node, offset) {
       this.current.push(node);
       node.source = {
-        start: this.getPosition(offset),
-        input: this.input
+        input: this.input,
+        start: this.getPosition(offset)
       };
       node.raws.before = this.spaces;
       this.spaces = '';
       if (node.type !== 'comment') this.semicolon = false;
+    }
+
+    other(start) {
+      let end = false;
+      let type = null;
+      let colon = false;
+      let bracket = null;
+      let brackets = [];
+      let customProperty = start[1].startsWith('--');
+
+      let tokens = [];
+      let token = start;
+      while (token) {
+        type = token[0];
+        tokens.push(token);
+
+        if (type === '(' || type === '[') {
+          if (!bracket) bracket = token;
+          brackets.push(type === '(' ? ')' : ']');
+        } else if (customProperty && colon && type === '{') {
+          if (!bracket) bracket = token;
+          brackets.push('}');
+        } else if (brackets.length === 0) {
+          if (type === ';') {
+            if (colon) {
+              this.decl(tokens, customProperty);
+              return
+            } else {
+              break
+            }
+          } else if (type === '{') {
+            this.rule(tokens);
+            return
+          } else if (type === '}') {
+            this.tokenizer.back(tokens.pop());
+            end = true;
+            break
+          } else if (type === ':') {
+            colon = true;
+          }
+        } else if (type === brackets[brackets.length - 1]) {
+          brackets.pop();
+          if (brackets.length === 0) bracket = null;
+        }
+
+        token = this.tokenizer.nextToken();
+      }
+
+      if (this.tokenizer.endOfFile()) end = true;
+      if (brackets.length > 0) this.unclosedBracket(bracket);
+
+      if (end && colon) {
+        if (!customProperty) {
+          while (tokens.length) {
+            token = tokens[tokens.length - 1][0];
+            if (token !== 'space' && token !== 'comment') break
+            this.tokenizer.back(tokens.pop());
+          }
+        }
+        this.decl(tokens, customProperty);
+      } else {
+        this.unknownWord(tokens);
+      }
+    }
+
+    parse() {
+      let token;
+      while (!this.tokenizer.endOfFile()) {
+        token = this.tokenizer.nextToken();
+
+        switch (token[0]) {
+          case 'space':
+            this.spaces += token[1];
+            break
+
+          case ';':
+            this.freeSemicolon(token);
+            break
+
+          case '}':
+            this.end(token);
+            break
+
+          case 'comment':
+            this.comment(token);
+            break
+
+          case 'at-word':
+            this.atrule(token);
+            break
+
+          case '{':
+            this.emptyRule(token);
+            break
+
+          default:
+            this.other(token);
+            break
+        }
+      }
+      this.endFile();
+    }
+
+    precheckMissedSemicolon(/* tokens */) {
+      // Hook for Safe Parser
     }
 
     raw(node, prop, tokens, customProperty) {
@@ -15322,9 +15841,20 @@
       }
       if (!clean) {
         let raw = tokens.reduce((all, i) => all + i[1], '');
-        node.raws[prop] = { value, raw };
+        node.raws[prop] = { raw, value };
       }
       node[prop] = value;
+    }
+
+    rule(tokens) {
+      tokens.pop();
+
+      let node = new Rule$2();
+      this.init(node, tokens[0][2]);
+
+      node.raws.between = this.spacesAndCommentsFromEnd(tokens);
+      this.raw(node, 'selector', tokens);
+      this.current = node;
     }
 
     spacesAndCommentsFromEnd(tokens) {
@@ -15337,6 +15867,8 @@
       }
       return spaces
     }
+
+    // Errors
 
     spacesAndCommentsFromStart(tokens) {
       let next;
@@ -15369,49 +15901,16 @@
       return result
     }
 
-    colon(tokens) {
-      let brackets = 0;
-      let token, type, prev;
-      for (let [i, element] of tokens.entries()) {
-        token = element;
-        type = token[0];
-
-        if (type === '(') {
-          brackets += 1;
-        }
-        if (type === ')') {
-          brackets -= 1;
-        }
-        if (brackets === 0 && type === ':') {
-          if (!prev) {
-            this.doubleColon(token);
-          } else if (prev[0] === 'word' && prev[1] === 'progid') {
-            continue
-          } else {
-            return i
-          }
-        }
-
-        prev = token;
-      }
-      return false
+    unclosedBlock() {
+      let pos = this.current.source.start;
+      throw this.input.error('Unclosed block', pos.line, pos.column)
     }
-
-    // Errors
 
     unclosedBracket(bracket) {
       throw this.input.error(
         'Unclosed bracket',
         { offset: bracket[2] },
         { offset: bracket[2] + 1 }
-      )
-    }
-
-    unknownWord(tokens) {
-      throw this.input.error(
-        'Unknown word',
-        { offset: tokens[0][2] },
-        { offset: tokens[0][2] + tokens[0][1].length }
       )
     }
 
@@ -15423,16 +15922,11 @@
       )
     }
 
-    unclosedBlock() {
-      let pos = this.current.source.start;
-      throw this.input.error('Unclosed block', pos.line, pos.column)
-    }
-
-    doubleColon(token) {
+    unknownWord(tokens) {
       throw this.input.error(
-        'Double colon',
-        { offset: token[2] },
-        { offset: token[2] + token[1].length }
+        'Unknown word',
+        { offset: tokens[0][2] },
+        { offset: tokens[0][2] + tokens[0][1].length }
       )
     }
 
@@ -15441,32 +15935,6 @@
         'At-rule without name',
         { offset: token[2] },
         { offset: token[2] + token[1].length }
-      )
-    }
-
-    precheckMissedSemicolon(/* tokens */) {
-      // Hook for Safe Parser
-    }
-
-    checkMissedSemicolon(tokens) {
-      let colon = this.colon(tokens);
-      if (colon === false) return
-
-      let founded = 0;
-      let token;
-      for (let j = colon - 1; j >= 0; j--) {
-        token = tokens[j];
-        if (token[0] !== 'space') {
-          founded += 1;
-          if (founded === 2) break
-        }
-      }
-      // If the token is a word, e.g. `!important`, `red` or any other valid property's value.
-      // Then we need to return the colon after that word token. [3] is the "end" colon of that word.
-      // And because we need it after that one we do +1 to get the next one.
-      throw this.input.error(
-        'Missed semicolon',
-        token[0] === 'word' ? token[3] + 1 : token[2]
       )
     }
   };
@@ -15525,37 +15993,37 @@
   let Root$3 = root;
 
   const TYPE_TO_CLASS_NAME = {
+    atrule: 'AtRule',
+    comment: 'Comment',
+    decl: 'Declaration',
     document: 'Document',
     root: 'Root',
-    atrule: 'AtRule',
-    rule: 'Rule',
-    decl: 'Declaration',
-    comment: 'Comment'
+    rule: 'Rule'
   };
 
   const PLUGIN_PROPS = {
+    AtRule: true,
+    AtRuleExit: true,
+    Comment: true,
+    CommentExit: true,
+    Declaration: true,
+    DeclarationExit: true,
+    Document: true,
+    DocumentExit: true,
+    Once: true,
+    OnceExit: true,
     postcssPlugin: true,
     prepare: true,
-    Once: true,
-    Document: true,
     Root: true,
-    Declaration: true,
-    Rule: true,
-    AtRule: true,
-    Comment: true,
-    DeclarationExit: true,
-    RuleExit: true,
-    AtRuleExit: true,
-    CommentExit: true,
     RootExit: true,
-    DocumentExit: true,
-    OnceExit: true
+    Rule: true,
+    RuleExit: true
   };
 
   const NOT_VISITORS = {
+    Once: true,
     postcssPlugin: true,
-    prepare: true,
-    Once: true
+    prepare: true
   };
 
   const CHILDREN = 0;
@@ -15601,12 +16069,12 @@
     }
 
     return {
-      node,
-      events,
       eventIndex: 0,
-      visitors: [],
+      events,
+      iterator: 0,
+      node,
       visitorIndex: 0,
-      iterator: 0
+      visitors: []
     }
   }
 
@@ -15657,7 +16125,7 @@
       }
 
       this.result = new Result$2(processor, root, opts);
-      this.helpers = { ...postcss$1, result: this.result, postcss: postcss$1 };
+      this.helpers = { ...postcss$1, postcss: postcss$1, result: this.result };
       this.plugins = this.processor.plugins.map(plugin => {
         if (typeof plugin === 'object' && plugin.prepare) {
           return { ...plugin, ...plugin.prepare(this.result) }
@@ -15665,67 +16133,6 @@
           return plugin
         }
       });
-    }
-
-    get [Symbol.toStringTag]() {
-      return 'LazyResult'
-    }
-
-    get processor() {
-      return this.result.processor
-    }
-
-    get opts() {
-      return this.result.opts
-    }
-
-    get css() {
-      return this.stringify().css
-    }
-
-    get content() {
-      return this.stringify().content
-    }
-
-    get map() {
-      return this.stringify().map
-    }
-
-    get root() {
-      return this.sync().root
-    }
-
-    get messages() {
-      return this.sync().messages
-    }
-
-    warnings() {
-      return this.sync().warnings()
-    }
-
-    toString() {
-      return this.css
-    }
-
-    then(onFulfilled, onRejected) {
-      if (browser$1.env.NODE_ENV !== 'production') {
-        if (!('from' in this.opts)) {
-          warnOnce$1(
-            'Without `from` option PostCSS could generate wrong source map ' +
-              'and will not find Browserslist config. Set it to CSS file path ' +
-              'or to `undefined` to prevent this warning.'
-          );
-        }
-      }
-      return this.async().then(onFulfilled, onRejected)
-    }
-
-    catch(onRejected) {
-      return this.async().catch(onRejected)
-    }
-
-    finally(onFinally) {
-      return this.async().then(onFinally, onFinally)
     }
 
     async() {
@@ -15737,124 +16144,20 @@
       return this.processing
     }
 
-    sync() {
-      if (this.error) throw this.error
-      if (this.processed) return this.result
-      this.processed = true;
-
-      if (this.processing) {
-        throw this.getAsyncError()
-      }
-
-      for (let plugin of this.plugins) {
-        let promise = this.runOnRoot(plugin);
-        if (isPromise(promise)) {
-          throw this.getAsyncError()
-        }
-      }
-
-      this.prepareVisitors();
-      if (this.hasListener) {
-        let root = this.result.root;
-        while (!root[isClean]) {
-          root[isClean] = true;
-          this.walkSync(root);
-        }
-        if (this.listeners.OnceExit) {
-          if (root.type === 'document') {
-            for (let subRoot of root.nodes) {
-              this.visitSync(this.listeners.OnceExit, subRoot);
-            }
-          } else {
-            this.visitSync(this.listeners.OnceExit, root);
-          }
-        }
-      }
-
-      return this.result
+    catch(onRejected) {
+      return this.async().catch(onRejected)
     }
 
-    stringify() {
-      if (this.error) throw this.error
-      if (this.stringified) return this.result
-      this.stringified = true;
-
-      this.sync();
-
-      let opts = this.result.opts;
-      let str = stringify$2;
-      if (opts.syntax) str = opts.syntax.stringify;
-      if (opts.stringifier) str = opts.stringifier;
-      if (str.stringify) str = str.stringify;
-
-      let map = new MapGenerator$1(str, this.result.root, this.result.opts);
-      let data = map.generate();
-      this.result.css = data[0];
-      this.result.map = data[1];
-
-      return this.result
+    get content() {
+      return this.stringify().content
     }
 
-    walkSync(node) {
-      node[isClean] = true;
-      let events = getEvents(node);
-      for (let event of events) {
-        if (event === CHILDREN) {
-          if (node.nodes) {
-            node.each(child => {
-              if (!child[isClean]) this.walkSync(child);
-            });
-          }
-        } else {
-          let visitors = this.listeners[event];
-          if (visitors) {
-            if (this.visitSync(visitors, node.toProxy())) return
-          }
-        }
-      }
+    get css() {
+      return this.stringify().css
     }
 
-    visitSync(visitors, node) {
-      for (let [plugin, visitor] of visitors) {
-        this.result.lastPlugin = plugin;
-        let promise;
-        try {
-          promise = visitor(node, this.helpers);
-        } catch (e) {
-          throw this.handleError(e, node.proxyOf)
-        }
-        if (node.type !== 'root' && node.type !== 'document' && !node.parent) {
-          return true
-        }
-        if (isPromise(promise)) {
-          throw this.getAsyncError()
-        }
-      }
-    }
-
-    runOnRoot(plugin) {
-      this.result.lastPlugin = plugin;
-      try {
-        if (typeof plugin === 'object' && plugin.Once) {
-          if (this.result.root.type === 'document') {
-            let roots = this.result.root.nodes.map(root =>
-              plugin.Once(root, this.helpers)
-            );
-
-            if (isPromise(roots[0])) {
-              return Promise.all(roots)
-            }
-
-            return roots
-          }
-
-          return plugin.Once(this.result.root, this.helpers)
-        } else if (typeof plugin === 'function') {
-          return plugin(this.result.root, this.result)
-        }
-      } catch (error) {
-        throw this.handleError(error)
-      }
+    finally(onFinally) {
+      return this.async().then(onFinally, onFinally)
     }
 
     getAsyncError() {
@@ -15898,6 +16201,64 @@
         if (console && console.error) console.error(err);
       }
       return error
+    }
+
+    get map() {
+      return this.stringify().map
+    }
+
+    get messages() {
+      return this.sync().messages
+    }
+
+    get opts() {
+      return this.result.opts
+    }
+
+    prepareVisitors() {
+      this.listeners = {};
+      let add = (plugin, type, cb) => {
+        if (!this.listeners[type]) this.listeners[type] = [];
+        this.listeners[type].push([plugin, cb]);
+      };
+      for (let plugin of this.plugins) {
+        if (typeof plugin === 'object') {
+          for (let event in plugin) {
+            if (!PLUGIN_PROPS[event] && /^[A-Z]/.test(event)) {
+              throw new Error(
+                `Unknown event ${event} in ${plugin.postcssPlugin}. ` +
+                  `Try to update PostCSS (${this.processor.version} now).`
+              )
+            }
+            if (!NOT_VISITORS[event]) {
+              if (typeof plugin[event] === 'object') {
+                for (let filter in plugin[event]) {
+                  if (filter === '*') {
+                    add(plugin, event, plugin[event][filter]);
+                  } else {
+                    add(
+                      plugin,
+                      event + '-' + filter.toLowerCase(),
+                      plugin[event][filter]
+                    );
+                  }
+                }
+              } else if (typeof plugin[event] === 'function') {
+                add(plugin, event, plugin[event]);
+              }
+            }
+          }
+        }
+      }
+      this.hasListener = Object.keys(this.listeners).length > 0;
+    }
+
+    get processor() {
+      return this.result.processor
+    }
+
+    get root() {
+      return this.sync().root
     }
 
     async runAsync() {
@@ -15957,42 +16318,126 @@
       return this.stringify()
     }
 
-    prepareVisitors() {
-      this.listeners = {};
-      let add = (plugin, type, cb) => {
-        if (!this.listeners[type]) this.listeners[type] = [];
-        this.listeners[type].push([plugin, cb]);
-      };
+    runOnRoot(plugin) {
+      this.result.lastPlugin = plugin;
+      try {
+        if (typeof plugin === 'object' && plugin.Once) {
+          if (this.result.root.type === 'document') {
+            let roots = this.result.root.nodes.map(root =>
+              plugin.Once(root, this.helpers)
+            );
+
+            if (isPromise(roots[0])) {
+              return Promise.all(roots)
+            }
+
+            return roots
+          }
+
+          return plugin.Once(this.result.root, this.helpers)
+        } else if (typeof plugin === 'function') {
+          return plugin(this.result.root, this.result)
+        }
+      } catch (error) {
+        throw this.handleError(error)
+      }
+    }
+
+    stringify() {
+      if (this.error) throw this.error
+      if (this.stringified) return this.result
+      this.stringified = true;
+
+      this.sync();
+
+      let opts = this.result.opts;
+      let str = stringify$2;
+      if (opts.syntax) str = opts.syntax.stringify;
+      if (opts.stringifier) str = opts.stringifier;
+      if (str.stringify) str = str.stringify;
+
+      let map = new MapGenerator$1(str, this.result.root, this.result.opts);
+      let data = map.generate();
+      this.result.css = data[0];
+      this.result.map = data[1];
+
+      return this.result
+    }
+
+    get [Symbol.toStringTag]() {
+      return 'LazyResult'
+    }
+
+    sync() {
+      if (this.error) throw this.error
+      if (this.processed) return this.result
+      this.processed = true;
+
+      if (this.processing) {
+        throw this.getAsyncError()
+      }
+
       for (let plugin of this.plugins) {
-        if (typeof plugin === 'object') {
-          for (let event in plugin) {
-            if (!PLUGIN_PROPS[event] && /^[A-Z]/.test(event)) {
-              throw new Error(
-                `Unknown event ${event} in ${plugin.postcssPlugin}. ` +
-                  `Try to update PostCSS (${this.processor.version} now).`
-              )
+        let promise = this.runOnRoot(plugin);
+        if (isPromise(promise)) {
+          throw this.getAsyncError()
+        }
+      }
+
+      this.prepareVisitors();
+      if (this.hasListener) {
+        let root = this.result.root;
+        while (!root[isClean]) {
+          root[isClean] = true;
+          this.walkSync(root);
+        }
+        if (this.listeners.OnceExit) {
+          if (root.type === 'document') {
+            for (let subRoot of root.nodes) {
+              this.visitSync(this.listeners.OnceExit, subRoot);
             }
-            if (!NOT_VISITORS[event]) {
-              if (typeof plugin[event] === 'object') {
-                for (let filter in plugin[event]) {
-                  if (filter === '*') {
-                    add(plugin, event, plugin[event][filter]);
-                  } else {
-                    add(
-                      plugin,
-                      event + '-' + filter.toLowerCase(),
-                      plugin[event][filter]
-                    );
-                  }
-                }
-              } else if (typeof plugin[event] === 'function') {
-                add(plugin, event, plugin[event]);
-              }
-            }
+          } else {
+            this.visitSync(this.listeners.OnceExit, root);
           }
         }
       }
-      this.hasListener = Object.keys(this.listeners).length > 0;
+
+      return this.result
+    }
+
+    then(onFulfilled, onRejected) {
+      if (browser$1.env.NODE_ENV !== 'production') {
+        if (!('from' in this.opts)) {
+          warnOnce$1(
+            'Without `from` option PostCSS could generate wrong source map ' +
+              'and will not find Browserslist config. Set it to CSS file path ' +
+              'or to `undefined` to prevent this warning.'
+          );
+        }
+      }
+      return this.async().then(onFulfilled, onRejected)
+    }
+
+    toString() {
+      return this.css
+    }
+
+    visitSync(visitors, node) {
+      for (let [plugin, visitor] of visitors) {
+        this.result.lastPlugin = plugin;
+        let promise;
+        try {
+          promise = visitor(node, this.helpers);
+        } catch (e) {
+          throw this.handleError(e, node.proxyOf)
+        }
+        if (node.type !== 'root' && node.type !== 'document' && !node.parent) {
+          return true
+        }
+        if (isPromise(promise)) {
+          throw this.getAsyncError()
+        }
+      }
     }
 
     visitTick(stack) {
@@ -16051,6 +16496,29 @@
       }
       stack.pop();
     }
+
+    walkSync(node) {
+      node[isClean] = true;
+      let events = getEvents(node);
+      for (let event of events) {
+        if (event === CHILDREN) {
+          if (node.nodes) {
+            node.each(child => {
+              if (!child[isClean]) this.walkSync(child);
+            });
+          }
+        } else {
+          let visitors = this.listeners[event];
+          if (visitors) {
+            if (this.visitSync(visitors, node.toProxy())) return
+          }
+        }
+      }
+    }
+
+    warnings() {
+      return this.sync().warnings()
+    }
   };
 
   LazyResult$2.registerPostcss = dependant => {
@@ -16103,28 +16571,41 @@
       }
     }
 
-    get [Symbol.toStringTag]() {
-      return 'NoWorkResult'
+    async() {
+      if (this.error) return Promise.reject(this.error)
+      return Promise.resolve(this.result)
     }
 
-    get processor() {
-      return this.result.processor
-    }
-
-    get opts() {
-      return this.result.opts
-    }
-
-    get css() {
-      return this.result.css
+    catch(onRejected) {
+      return this.async().catch(onRejected)
     }
 
     get content() {
       return this.result.css
     }
 
+    get css() {
+      return this.result.css
+    }
+
+    finally(onFinally) {
+      return this.async().then(onFinally, onFinally)
+    }
+
     get map() {
       return this.result.map
+    }
+
+    get messages() {
+      return []
+    }
+
+    get opts() {
+      return this.result.opts
+    }
+
+    get processor() {
+      return this.result.processor
     }
 
     get root() {
@@ -16149,16 +16630,13 @@
       }
     }
 
-    get messages() {
-      return []
+    get [Symbol.toStringTag]() {
+      return 'NoWorkResult'
     }
 
-    warnings() {
-      return []
-    }
-
-    toString() {
-      return this._css
+    sync() {
+      if (this.error) throw this.error
+      return this.result
     }
 
     then(onFulfilled, onRejected) {
@@ -16175,22 +16653,12 @@
       return this.async().then(onFulfilled, onRejected)
     }
 
-    catch(onRejected) {
-      return this.async().catch(onRejected)
+    toString() {
+      return this._css
     }
 
-    finally(onFinally) {
-      return this.async().then(onFinally, onFinally)
-    }
-
-    async() {
-      if (this.error) return Promise.reject(this.error)
-      return Promise.resolve(this.result)
-    }
-
-    sync() {
-      if (this.error) throw this.error
-      return this.result
+    warnings() {
+      return []
     }
   };
 
@@ -16204,26 +16672,8 @@
 
   let Processor$1 = class Processor {
     constructor(plugins = []) {
-      this.version = '8.4.21';
+      this.version = '8.4.27';
       this.plugins = this.normalize(plugins);
-    }
-
-    use(plugin) {
-      this.plugins = this.plugins.concat(this.normalize([plugin]));
-      return this
-    }
-
-    process(css, opts = {}) {
-      if (
-        this.plugins.length === 0 &&
-        typeof opts.parser === 'undefined' &&
-        typeof opts.stringifier === 'undefined' &&
-        typeof opts.syntax === 'undefined'
-      ) {
-        return new NoWorkResult(this, css, opts)
-      } else {
-        return new LazyResult$1(this, css, opts)
-      }
     }
 
     normalize(plugins) {
@@ -16254,6 +16704,24 @@
         }
       }
       return normalized
+    }
+
+    process(css, opts = {}) {
+      if (
+        this.plugins.length === 0 &&
+        typeof opts.parser === 'undefined' &&
+        typeof opts.stringifier === 'undefined' &&
+        typeof opts.syntax === 'undefined'
+      ) {
+        return new NoWorkResult(this, css, opts)
+      } else {
+        return new LazyResult$1(this, css, opts)
+      }
+    }
+
+    use(plugin) {
+      this.plugins = this.plugins.concat(this.normalize([plugin]));
+      return this
     }
   };
 
@@ -16535,12 +17003,13 @@
     options = Object.assign({}, sanitizeHtml.defaults, options);
     options.parser = Object.assign({}, htmlParserDefaults, options.parser);
 
+    const tagAllowed = function (name) {
+      return options.allowedTags === false || (options.allowedTags || []).indexOf(name) > -1;
+    };
+
     // vulnerableTags
     vulnerableTags.forEach(function (tag) {
-      if (
-        options.allowedTags !== false && (options.allowedTags || []).indexOf(tag) > -1 &&
-        !options.allowVulnerableTags
-      ) {
+      if (tagAllowed(tag) && !options.allowVulnerableTags) {
         console.warn(`\n\n⚠️ Your \`allowedTags\` option includes, \`${tag}\`, which is inherently\nvulnerable to XSS attacks. Please remove it from \`allowedTags\`.\nOr, to disable this warning, add the \`allowVulnerableTags\` option\nand ensure you are accounting for this risk.\n\n`);
       }
     });
@@ -16587,20 +17056,24 @@
         allowedAttributesMap[tag].push('class');
       }
 
-      allowedClassesMap[tag] = [];
-      allowedClassesRegexMap[tag] = [];
-      const globRegex = [];
-      classes.forEach(function(obj) {
-        if (typeof obj === 'string' && obj.indexOf('*') >= 0) {
-          globRegex.push(escapeStringRegexp(obj).replace(/\\\*/g, '.*'));
-        } else if (obj instanceof RegExp) {
-          allowedClassesRegexMap[tag].push(obj);
-        } else {
-          allowedClassesMap[tag].push(obj);
+      allowedClassesMap[tag] = classes;
+
+      if (Array.isArray(classes)) {
+        const globRegex = [];
+        allowedClassesMap[tag] = [];
+        allowedClassesRegexMap[tag] = [];
+        classes.forEach(function(obj) {
+          if (typeof obj === 'string' && obj.indexOf('*') >= 0) {
+            globRegex.push(escapeStringRegexp(obj).replace(/\\\*/g, '.*'));
+          } else if (obj instanceof RegExp) {
+            allowedClassesRegexMap[tag].push(obj);
+          } else {
+            allowedClassesMap[tag].push(obj);
+          }
+        });
+        if (globRegex.length) {
+          allowedClassesGlobMap[tag] = new RegExp('^(' + globRegex.join('|') + ')$');
         }
-      });
-      if (globRegex.length) {
-        allowedClassesGlobMap[tag] = new RegExp('^(' + globRegex.join('|') + ')$');
       }
     });
 
@@ -16672,7 +17145,7 @@
           }
         }
 
-        if ((options.allowedTags !== false && (options.allowedTags || []).indexOf(name) === -1) || (options.disallowedTagsMode === 'recursiveEscape' && !isEmptyObject(skipMap)) || (options.nestingLimit != null && depth >= options.nestingLimit)) {
+        if (!tagAllowed(name) || (options.disallowedTagsMode === 'recursiveEscape' && !isEmptyObject(skipMap)) || (options.nestingLimit != null && depth >= options.nestingLimit)) {
           skip = true;
           skipMap[depth] = true;
           if (options.disallowedTagsMode === 'discard') {
@@ -16705,6 +17178,12 @@
             if (!VALID_HTML_ATTRIBUTE_NAME.test(a)) {
               // This prevents part of an attribute name in the output from being
               // interpreted as the end of an attribute, or end of a tag.
+              delete frame.attribs[a];
+              return;
+            }
+            // If the value is empty, and this is a known non-boolean attribute, delete it
+            // List taken from https://html.spec.whatwg.org/multipage/indices.html#attributes-3
+            if (value === '' && (options.nonBooleanAttributes.includes(a) || options.nonBooleanAttributes.includes('*'))) {
               delete frame.attribs[a];
               return;
             }
@@ -16868,7 +17347,9 @@
                       return;
                     }
                   } catch (e) {
-                    console.warn('Failed to parse "' + name + ' {' + value + '}' + '", If you\'re running this in a browser, we recommend to disable style parsing: options.parseStyleAttributes: false, since this only works in a node environment due to a postcss dependency, More info: https://github.com/apostrophecms/sanitize-html/issues/547');
+                    if (typeof window !== 'undefined') {
+                      console.warn('Failed to parse "' + name + ' {' + value + '}' + '", If you\'re running this in a browser, we recommend to disable style parsing: options.parseStyleAttributes: false, since this only works in a node environment due to a postcss dependency, More info: https://github.com/apostrophecms/sanitize-html/issues/547');
+                    }
                     delete frame.attribs[a];
                     return;
                   }
@@ -16931,7 +17412,7 @@
           frame.text += text;
         }
       },
-      onclosetag: function(name) {
+      onclosetag: function(name, isImplied) {
 
         if (skipText) {
           skipTextDepth--;
@@ -16981,8 +17462,12 @@
         frame.updateParentNodeMediaChildren();
         frame.updateParentNodeText();
 
-        if (options.selfClosing.indexOf(name) !== -1) {
+        if (
           // Already output />
+          options.selfClosing.indexOf(name) !== -1 ||
+          // Escaped tag, closing tag is implied
+          (isImplied && !tagAllowed(name) && [ 'escape', 'recursiveEscape' ].indexOf(options.disallowedTagsMode) >= 0)
+        ) {
           if (skip) {
             result = tempResult;
             tempResult = '';
@@ -17227,6 +17712,49 @@
       'caption', 'col', 'colgroup', 'table', 'tbody', 'td', 'tfoot', 'th',
       'thead', 'tr'
     ],
+    // Tags that cannot be boolean
+    nonBooleanAttributes: [
+      'abbr', 'accept', 'accept-charset', 'accesskey', 'action',
+      'allow', 'alt', 'as', 'autocapitalize', 'autocomplete',
+      'blocking', 'charset', 'cite', 'class', 'color', 'cols',
+      'colspan', 'content', 'contenteditable', 'coords', 'crossorigin',
+      'data', 'datetime', 'decoding', 'dir', 'dirname', 'download',
+      'draggable', 'enctype', 'enterkeyhint', 'fetchpriority', 'for',
+      'form', 'formaction', 'formenctype', 'formmethod', 'formtarget',
+      'headers', 'height', 'hidden', 'high', 'href', 'hreflang',
+      'http-equiv', 'id', 'imagesizes', 'imagesrcset', 'inputmode',
+      'integrity', 'is', 'itemid', 'itemprop', 'itemref', 'itemtype',
+      'kind', 'label', 'lang', 'list', 'loading', 'low', 'max',
+      'maxlength', 'media', 'method', 'min', 'minlength', 'name',
+      'nonce', 'optimum', 'pattern', 'ping', 'placeholder', 'popover',
+      'popovertarget', 'popovertargetaction', 'poster', 'preload',
+      'referrerpolicy', 'rel', 'rows', 'rowspan', 'sandbox', 'scope',
+      'shape', 'size', 'sizes', 'slot', 'span', 'spellcheck', 'src',
+      'srcdoc', 'srclang', 'srcset', 'start', 'step', 'style',
+      'tabindex', 'target', 'title', 'translate', 'type', 'usemap',
+      'value', 'width', 'wrap',
+      // Event handlers
+      'onauxclick', 'onafterprint', 'onbeforematch', 'onbeforeprint',
+      'onbeforeunload', 'onbeforetoggle', 'onblur', 'oncancel',
+      'oncanplay', 'oncanplaythrough', 'onchange', 'onclick', 'onclose',
+      'oncontextlost', 'oncontextmenu', 'oncontextrestored', 'oncopy',
+      'oncuechange', 'oncut', 'ondblclick', 'ondrag', 'ondragend',
+      'ondragenter', 'ondragleave', 'ondragover', 'ondragstart',
+      'ondrop', 'ondurationchange', 'onemptied', 'onended',
+      'onerror', 'onfocus', 'onformdata', 'onhashchange', 'oninput',
+      'oninvalid', 'onkeydown', 'onkeypress', 'onkeyup',
+      'onlanguagechange', 'onload', 'onloadeddata', 'onloadedmetadata',
+      'onloadstart', 'onmessage', 'onmessageerror', 'onmousedown',
+      'onmouseenter', 'onmouseleave', 'onmousemove', 'onmouseout',
+      'onmouseover', 'onmouseup', 'onoffline', 'ononline', 'onpagehide',
+      'onpageshow', 'onpaste', 'onpause', 'onplay', 'onplaying',
+      'onpopstate', 'onprogress', 'onratechange', 'onreset', 'onresize',
+      'onrejectionhandled', 'onscroll', 'onscrollend',
+      'onsecuritypolicyviolation', 'onseeked', 'onseeking', 'onselect',
+      'onslotchange', 'onstalled', 'onstorage', 'onsubmit', 'onsuspend',
+      'ontimeupdate', 'ontoggle', 'onunhandledrejection', 'onunload',
+      'onvolumechange', 'onwaiting', 'onwheel'
+    ],
     disallowedTagsMode: 'discard',
     allowedAttributes: {
       a: [ 'href', 'name', 'target' ],
@@ -17266,7 +17794,7 @@
     };
   };
 
-  var sanitizeHtml$1 = sanitizeHtml_1;
+  var sanitizeHtml$1 = /*@__PURE__*/getDefaultExportFromCjs(sanitizeHtml_1);
 
   // Update config not to allow table related tags
   const disallowedTags = ["table", "tbody", "td", "tfoot", "th", "thead", "tr"];
@@ -17278,27 +17806,27 @@
   /**
    * Create table object from source.
    * @param {Object} source Table source.
-   * @returns {{ headers: Header[], rows: Row[]}} Table object.
+   * @returns {{ columns: Column[], rows: Row[]}} Table object.
    */
   const parseTable = (source) => {
     const table = {
-      headers: generateHeader(source.headers),
+      columns: generateHeader(source.columns),
       rows: [],
     };
 
-    table.rows.push(...generateRows(table.headers, source.rows));
+    table.rows.push(...generateRows(table.columns, source.rows));
 
     return table
   };
 
   /**
    * Generate header object.
-   * @param {Object} headers Source data to convert to table
-   * @returns {Header[]} Header object
+   * @param {Object} columns Source data to convert to table
+   * @returns {Column[]} Column object
    */
-  function generateHeader(headers) {
-    return headers.map(key => {
-      const header = {
+  function generateHeader(columns) {
+    return columns.map(key => {
+      const column = {
         label: (!!key.allowHtmlHeader ? sanitize(key.label) : escapeAll(key.label)) || '',
         source: key.source || '',
         allowHtmlHeader: !!key.allowHtmlHeader,
@@ -17309,28 +17837,28 @@
 
       // Special column: auto numbering
       if (key.type === TYPE_AUTONUMBER) {
-        header.label = header.label || HEADER_AUTONUMBER;
-        header.startFrom = key.startFrom || 1;
-        header.__autonumber__ = header.startFrom;
+        column.label = column.label || HEADER_AUTONUMBER;
+        column.startFrom = key.startFrom || 1;
+        column.__autonumber__ = column.startFrom;
         // default align is right
-        header.align = header.align || 'right';
+        column.align = column.align || 'right';
       }
 
       // Remove undefined keys
-      Object.keys(header).forEach((k) => header[k] == null && delete header[k]);
-      return header
+      Object.keys(column).forEach((k) => column[k] == null && delete column[k]);
+      return column
     })
   }
 
   /**
    * 
-   * @param {Header[]} headers Header list
+   * @param {Column[]} columns Column list
    * @param {Object[]} rows Row sources
    * @returns {Cell[]} Row objects
    */
-  function generateRows(headers, rows) {
+  function generateRows(columns, rows) {
     return (rows || []).map(source =>
-      headers.map(head => {
+      columns.map(head => {
         function getContent() {
           // Raw column: rendering as HTML (not secure)
           if (head.allowHtmlContent) {
@@ -17379,21 +17907,21 @@
     if (!data || !data.rows) {
       return null
     }
-    if (!data.headers) {
+    if (!data.columns) {
       // Use the first row's property name as header
-      data.headers = Object.keys(data.rows[0]).map(key => ({
+      data.columns = Object.keys(data.rows[0]).map(key => ({
         label: key,
         source: key,
       }));
     }
 
     const tableData = parseTable(data);
-    if (tableData.headers.length === 0) return null
+    if (tableData.columns.length === 0) return null
 
     // header
-    return `| ${tableData.headers.map(h => h.label).join(' | ')} |\n`
+    return `| ${tableData.columns.map(h => h.label).join(' | ')} |\n`
       // separator
-      + `|${tableData.headers.map(h =>
+      + `|${tableData.columns.map(h =>
       h.align === 'left' ? ':---'
       : h.align === 'center' ? ':--:'
       : h.align === 'right' ? '---:'

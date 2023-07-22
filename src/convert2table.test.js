@@ -23,7 +23,7 @@ test('minimum example', () => {
 
 test('standard example', () => {
   const yaml = `
-  headers:
+  columns:
   - label: test
     source: col1
   rows:
@@ -40,7 +40,7 @@ test('standard example', () => {
 
 test('escape pipe', () => {
   const yaml = `
-  headers:
+  columns:
   - label: test
     source: col1
   rows:
@@ -55,7 +55,7 @@ test('escape pipe', () => {
 
 test('cell text align', () => {
   const yaml = `
-  headers:
+  columns:
   - label: left
     source: col1
     align: left
@@ -77,7 +77,7 @@ test('cell text align', () => {
 
 test('line breaks', () => {
   const yaml = `
-  headers:
+  columns:
   - label: test
     source: col1
   rows:
@@ -106,7 +106,7 @@ test('line breaks', () => {
 
 test('readme example', () => {
   const yaml = `
-  headers:
+  columns:
   - label: "#"
     type: autonumber
     startFrom: 9
