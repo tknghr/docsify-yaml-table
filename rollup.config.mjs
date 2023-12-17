@@ -25,5 +25,6 @@ export default {
     json(),
     resolve(),
     nodePolyfills(),
-  ]
+  ],
+  strictDeprecations: true,
 }

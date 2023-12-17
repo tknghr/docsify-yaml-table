@@ -9948,10 +9948,6 @@
       return this.parent.nodes[index - 1]
     }
 
-    get proxyOf() {
-      return this
-    }
-
     rangeBy(opts) {
       let start = {
         column: this.source.start.column,
@@ -10118,6 +10114,10 @@
       let data = { node: this };
       for (let i in opts) data[i] = opts[i];
       return result.warn(text, data)
+    }
+
+    get proxyOf() {
+      return this
     }
   };
 
@@ -13876,10 +13876,6 @@
       return result
     }
 
-    get from() {
-      return this.file || this.id
-    }
-
     fromOffset(offset) {
       let lastLine, lineToIndex;
       if (!this[fromOffsetCache]) {
@@ -13990,6 +13986,10 @@
       }
       return json
     }
+
+    get from() {
+      return this.file || this.id
+    }
   };
 
   var input = Input$4;
@@ -14016,6 +14016,10 @@
       this.opts = opts;
       this.css = cssString;
       this.usesFileUrls = !this.mapOpts.from && this.mapOpts.absolute;
+
+      this.memoizedFileURLs = new Map();
+      this.memoizedPaths = new Map();
+      this.memoizedURLs = new Map();
     }
 
     addAnnotation() {
@@ -14240,9 +14244,11 @@
     }
 
     path(file) {
-      if (file.indexOf('<') === 0) return file
-      if (/^\w+:\/\//.test(file)) return file
       if (this.mapOpts.absolute) return file
+      if (file.charCodeAt(0) === 60 /* `<` */) return file
+      if (/^\w+:\/\//.test(file)) return file
+      let cached = this.memoizedPaths.get(file);
+      if (cached) return cached
 
       let from = this.opts.to ? dirname(this.opts.to) : '.';
 
@@ -14250,8 +14256,10 @@
         from = dirname(resolve(from, this.mapOpts.annotation));
       }
 
-      file = relative(from, file);
-      return file
+      let path = relative(from, file);
+      this.memoizedPaths.set(file, path);
+
+      return path
     }
 
     previous() {
@@ -14317,8 +14325,14 @@
     }
 
     toFileUrl(path) {
+      let cached = this.memoizedFileURLs.get(path);
+      if (cached) return cached
+
       if (pathToFileURL) {
-        return pathToFileURL(path).toString()
+        let fileURL = pathToFileURL(path).toString();
+        this.memoizedFileURLs.set(path, fileURL);
+
+        return fileURL
       } else {
         throw new Error(
           '`map.absolute` option is not available in this PostCSS build'
@@ -14327,10 +14341,17 @@
     }
 
     toUrl(path) {
+      let cached = this.memoizedURLs.get(path);
+      if (cached) return cached
+
       if (sep === '\\') {
         path = path.replace(/\\/g, '/');
       }
-      return encodeURI(path).replace(/[#?]/g, encodeURIComponent)
+
+      let url = encodeURI(path).replace(/[#?]/g, encodeURIComponent);
+      this.memoizedURLs.set(path, url);
+
+      return url
     }
   };
 
@@ -14410,11 +14431,6 @@
 
     every(condition) {
       return this.nodes.every(condition)
-    }
-
-    get first() {
-      if (!this.proxyOf.nodes) return undefined
-      return this.proxyOf.nodes[0]
     }
 
     getIterator() {
@@ -14521,11 +14537,6 @@
       this.markDirty();
 
       return this
-    }
-
-    get last() {
-      if (!this.proxyOf.nodes) return undefined
-      return this.proxyOf.nodes[this.proxyOf.nodes.length - 1]
     }
 
     normalize(nodes, sample) {
@@ -14741,6 +14752,16 @@
         }
       })
     }
+
+    get first() {
+      if (!this.proxyOf.nodes) return undefined
+      return this.proxyOf.nodes[0]
+    }
+
+    get last() {
+      if (!this.proxyOf.nodes) return undefined
+      return this.proxyOf.nodes[this.proxyOf.nodes.length - 1]
+    }
   };
 
   Container$7.registerParse = dependant => {
@@ -14878,10 +14899,6 @@
       this.map = undefined;
     }
 
-    get content() {
-      return this.css
-    }
-
     toString() {
       return this.css
     }
@@ -14901,6 +14918,10 @@
 
     warnings() {
       return this.messages.filter(i => i.type === 'warning')
+    }
+
+    get content() {
+      return this.css
     }
   };
 
@@ -14929,7 +14950,7 @@
 
   const RE_AT_END = /[\t\n\f\r "#'()/;[\\\]{}]/g;
   const RE_WORD_END = /[\t\n\f\r !"#'():;@[\\\]{}]|\/(?=\*)/g;
-  const RE_BAD_BRACKET = /.[\n"'(/\\]/;
+  const RE_BAD_BRACKET = /.[\r\n"'(/\\]/;
   const RE_HEX_ESCAPE = /[\da-f]/i;
 
   var tokenize = function tokenizer(input, options = {}) {
@@ -15404,6 +15425,7 @@
         if (brackets.length === 0) {
           if (type === ';') {
             node.source.end = this.getPosition(token[2]);
+            node.source.end.offset++;
             this.semicolon = true;
             break
           } else if (type === '{') {
@@ -15418,6 +15440,7 @@
               }
               if (prev) {
                 node.source.end = this.getPosition(prev[3] || prev[2]);
+                node.source.end.offset++;
               }
             }
             this.end(token);
@@ -15442,6 +15465,7 @@
         if (last) {
           token = params[params.length - 1];
           node.source.end = this.getPosition(token[3] || token[2]);
+          node.source.end.offset++;
           this.spaces = node.raws.between;
           node.raws.between = '';
         }
@@ -15510,6 +15534,7 @@
       let node = new Comment$2();
       this.init(node, token[2]);
       node.source.end = this.getPosition(token[3] || token[2]);
+      node.source.end.offset++;
 
       let text = token[1].slice(2, -2);
       if (/^\s*$/.test(text)) {
@@ -15541,6 +15566,7 @@
       node.source.end = this.getPosition(
         last[3] || last[2] || findLastWithPosition(tokens)
       );
+      node.source.end.offset++;
 
       while (tokens[0][0] !== 'word') {
         if (tokens.length === 1) this.unknownWord(tokens);
@@ -15659,6 +15685,7 @@
 
       if (this.current.parent) {
         this.current.source.end = this.getPosition(token[2]);
+        this.current.source.end.offset++;
         this.current = this.current.parent;
       } else {
         this.unexpectedClose(token);
@@ -15671,6 +15698,7 @@
         this.current.raws.semicolon = this.semicolon;
       }
       this.current.raws.after = (this.current.raws.after || '') + this.spaces;
+      this.root.source.end = this.getPosition(this.tokenizer.position());
     }
 
     freeSemicolon(token) {
@@ -16148,14 +16176,6 @@
       return this.async().catch(onRejected)
     }
 
-    get content() {
-      return this.stringify().content
-    }
-
-    get css() {
-      return this.stringify().css
-    }
-
     finally(onFinally) {
       return this.async().then(onFinally, onFinally)
     }
@@ -16203,18 +16223,6 @@
       return error
     }
 
-    get map() {
-      return this.stringify().map
-    }
-
-    get messages() {
-      return this.sync().messages
-    }
-
-    get opts() {
-      return this.result.opts
-    }
-
     prepareVisitors() {
       this.listeners = {};
       let add = (plugin, type, cb) => {
@@ -16251,14 +16259,6 @@
         }
       }
       this.hasListener = Object.keys(this.listeners).length > 0;
-    }
-
-    get processor() {
-      return this.result.processor
-    }
-
-    get root() {
-      return this.sync().root
     }
 
     async runAsync() {
@@ -16362,10 +16362,6 @@
       this.result.map = data[1];
 
       return this.result
-    }
-
-    get [Symbol.toStringTag]() {
-      return 'LazyResult'
     }
 
     sync() {
@@ -16519,6 +16515,38 @@
     warnings() {
       return this.sync().warnings()
     }
+
+    get content() {
+      return this.stringify().content
+    }
+
+    get css() {
+      return this.stringify().css
+    }
+
+    get map() {
+      return this.stringify().map
+    }
+
+    get messages() {
+      return this.sync().messages
+    }
+
+    get opts() {
+      return this.result.opts
+    }
+
+    get processor() {
+      return this.result.processor
+    }
+
+    get root() {
+      return this.sync().root
+    }
+
+    get [Symbol.toStringTag]() {
+      return 'LazyResult'
+    }
   };
 
   LazyResult$2.registerPostcss = dependant => {
@@ -16580,16 +16608,43 @@
       return this.async().catch(onRejected)
     }
 
+    finally(onFinally) {
+      return this.async().then(onFinally, onFinally)
+    }
+
+    sync() {
+      if (this.error) throw this.error
+      return this.result
+    }
+
+    then(onFulfilled, onRejected) {
+      if (browser$1.env.NODE_ENV !== 'production') {
+        if (!('from' in this._opts)) {
+          warnOnce(
+            'Without `from` option PostCSS could generate wrong source map ' +
+              'and will not find Browserslist config. Set it to CSS file path ' +
+              'or to `undefined` to prevent this warning.'
+          );
+        }
+      }
+
+      return this.async().then(onFulfilled, onRejected)
+    }
+
+    toString() {
+      return this._css
+    }
+
+    warnings() {
+      return []
+    }
+
     get content() {
       return this.result.css
     }
 
     get css() {
       return this.result.css
-    }
-
-    finally(onFinally) {
-      return this.async().then(onFinally, onFinally)
     }
 
     get map() {
@@ -16633,33 +16688,6 @@
     get [Symbol.toStringTag]() {
       return 'NoWorkResult'
     }
-
-    sync() {
-      if (this.error) throw this.error
-      return this.result
-    }
-
-    then(onFulfilled, onRejected) {
-      if (browser$1.env.NODE_ENV !== 'production') {
-        if (!('from' in this._opts)) {
-          warnOnce(
-            'Without `from` option PostCSS could generate wrong source map ' +
-              'and will not find Browserslist config. Set it to CSS file path ' +
-              'or to `undefined` to prevent this warning.'
-          );
-        }
-      }
-
-      return this.async().then(onFulfilled, onRejected)
-    }
-
-    toString() {
-      return this._css
-    }
-
-    warnings() {
-      return []
-    }
   };
 
   var noWorkResult = NoWorkResult$1;
@@ -16672,7 +16700,7 @@
 
   let Processor$1 = class Processor {
     constructor(plugins = []) {
-      this.version = '8.4.27';
+      this.version = '8.4.32';
       this.plugins = this.normalize(plugins);
     }
 
