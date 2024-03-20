@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.5.3] - 2024-03-20
+
+### Security
+
+- Fix [CVE-2024-21501](https://github.com/advisories/GHSA-rm97-x556-q36h)
+
+## [0.5.2] - 2023-12-17
+
+### Security
+
+- Fix [CVE-2023-45133](https://github.com/advisories/GHSA-67hx-6x53-jw92)
+
+### Changed
+
+- Upgrade dependencies: Rollup v4
+
+## [0.5.1] - 2023-10-11
+
+### Security
+
+- Fix [CVE-2023-44270](https://github.com/advisories/GHSA-7fh5-64p2-3v2j)
+
 ## [0.5.0] - 2023-07-22
 
 ### ⚠ Breaking Changes

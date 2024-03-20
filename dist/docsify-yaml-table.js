@@ -3861,10 +3861,7 @@
   	if (typeof f == "function") {
   		var a = function a () {
   			if (this instanceof a) {
-  				var args = [null];
-  				args.push.apply(args, arguments);
-  				var Ctor = Function.bind.apply(f, args);
-  				return new Ctor();
+          return Reflect.construct(f, arguments, this.constructor);
   			}
   			return f.apply(this, arguments);
   		};
@@ -10354,6 +10351,8 @@
    * @author   Feross Aboukhadijeh <feross@feross.org> <http://feross.org>
    * @license  MIT
    */
+  /* eslint-disable no-proto */
+
 
   var INSPECT_MAX_BYTES = 50;
 
@@ -14015,6 +14014,7 @@
       this.root = root;
       this.opts = opts;
       this.css = cssString;
+      this.originalCSS = cssString;
       this.usesFileUrls = !this.mapOpts.from && this.mapOpts.absolute;
 
       this.memoizedFileURLs = new Map();
@@ -14050,7 +14050,7 @@
         if (this.mapOpts.sourcesContent === false) {
           map = new SourceMapConsumer(prev.text);
           if (map.sourcesContent) {
-            map.sourcesContent = map.sourcesContent.map(() => null);
+            map.sourcesContent = null;
           }
         } else {
           map = prev.consumer();
@@ -14073,7 +14073,7 @@
           }
         }
       } else if (this.css) {
-        this.css = this.css.replace(/(\n)?\/\*#[\S\s]*?\*\/$/gm, '');
+        this.css = this.css.replace(/\n*?\/\*#[\S\s]*?\*\/$/gm, '');
       }
     }
 
@@ -14096,9 +14096,14 @@
       } else if (this.previous().length === 1) {
         let prev = this.previous()[0].consumer();
         prev.file = this.outputFile();
-        this.map = SourceMapGenerator.fromSourceMap(prev);
+        this.map = SourceMapGenerator.fromSourceMap(prev, {
+          ignoreInvalidMapping: true
+        });
       } else {
-        this.map = new SourceMapGenerator({ file: this.outputFile() });
+        this.map = new SourceMapGenerator({
+          file: this.outputFile(),
+          ignoreInvalidMapping: true
+        });
         this.map.addMapping({
           generated: { column: 0, line: 1 },
           original: { column: 0, line: 1 },
@@ -14121,7 +14126,10 @@
 
     generateString() {
       this.css = '';
-      this.map = new SourceMapGenerator({ file: this.outputFile() });
+      this.map = new SourceMapGenerator({
+        file: this.outputFile(),
+        ignoreInvalidMapping: true
+      });
 
       let line = 1;
       let column = 1;
@@ -14275,7 +14283,7 @@
             }
           });
         } else {
-          let input = new Input$3(this.css, this.opts);
+          let input = new Input$3(this.originalCSS, this.opts);
           if (input.map) this.previousMaps.push(input.map);
         }
       }
@@ -14542,6 +14550,8 @@
     normalize(nodes, sample) {
       if (typeof nodes === 'string') {
         nodes = cleanSource(parse$4(nodes).nodes);
+      } else if (typeof nodes === 'undefined') {
+        nodes = [];
       } else if (Array.isArray(nodes)) {
         nodes = nodes.slice(0);
         for (let i of nodes) {
@@ -15388,7 +15398,6 @@
       this.current = this.root;
       this.spaces = '';
       this.semicolon = false;
-      this.customProperty = false;
 
       this.createTokenizer();
       this.root.source = { input, start: { column: 1, line: 1, offset: 0 } };
@@ -16596,6 +16605,9 @@
         if (generatedMap) {
           this.result.map = generatedMap;
         }
+      } else {
+        map.clearAnnotation();
+        this.result.css = map.css;
       }
     }
 
@@ -16700,7 +16712,7 @@
 
   let Processor$1 = class Processor {
     constructor(plugins = []) {
-      this.version = '8.4.32';
+      this.version = '8.4.37';
       this.plugins = this.normalize(plugins);
     }
 
@@ -16736,10 +16748,10 @@
 
     process(css, opts = {}) {
       if (
-        this.plugins.length === 0 &&
-        typeof opts.parser === 'undefined' &&
-        typeof opts.stringifier === 'undefined' &&
-        typeof opts.syntax === 'undefined'
+        !this.plugins.length &&
+        !opts.parser &&
+        !opts.stringifier &&
+        !opts.syntax
       ) {
         return new NoWorkResult(this, css, opts)
       } else {
@@ -17209,9 +17221,11 @@
               delete frame.attribs[a];
               return;
             }
-            // If the value is empty, and this is a known non-boolean attribute, delete it
+            // If the value is empty, check if the attribute is in the allowedEmptyAttributes array.
+            // If it is not in the allowedEmptyAttributes array, and it is a known non-boolean attribute, delete it
             // List taken from https://html.spec.whatwg.org/multipage/indices.html#attributes-3
-            if (value === '' && (options.nonBooleanAttributes.includes(a) || options.nonBooleanAttributes.includes('*'))) {
+            if (value === '' && (!options.allowedEmptyAttributes.includes(a)) &&
+              (options.nonBooleanAttributes.includes(a) || options.nonBooleanAttributes.includes('*'))) {
               delete frame.attribs[a];
               return;
             }
@@ -17365,7 +17379,7 @@
               if (a === 'style') {
                 if (options.parseStyleAttributes) {
                   try {
-                    const abstractSyntaxTree = postcssParse(name + ' {' + value + '}');
+                    const abstractSyntaxTree = postcssParse(name + ' {' + value + '}', { map: false });
                     const filteredAST = filterCss(abstractSyntaxTree, options.allowedStyles);
 
                     value = stringifyStyleAttributes(filteredAST);
@@ -17388,6 +17402,8 @@
               result += ' ' + a;
               if (value && value.length) {
                 result += '="' + escapeHtml(value, true) + '"';
+              } else if (options.allowedEmptyAttributes.includes(a)) {
+                result += '=""';
               }
             } else {
               delete frame.attribs[a];
@@ -17790,6 +17806,9 @@
       // these attributes would make sense if we did.
       img: [ 'src', 'srcset', 'alt', 'title', 'width', 'height', 'loading' ]
     },
+    allowedEmptyAttributes: [
+      'alt'
+    ],
     // Lots of these won't come up by default because we don't allow them
     selfClosing: [ 'img', 'br', 'hr', 'area', 'base', 'basefont', 'input', 'link', 'meta' ],
     // URL schemes we permit
