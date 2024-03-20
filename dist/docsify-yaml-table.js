@@ -3861,10 +3861,7 @@
   	if (typeof f == "function") {
   		var a = function a () {
   			if (this instanceof a) {
-  				var args = [null];
-  				args.push.apply(args, arguments);
-  				var Ctor = Function.bind.apply(f, args);
-  				return new Ctor();
+          return Reflect.construct(f, arguments, this.constructor);
   			}
   			return f.apply(this, arguments);
   		};
@@ -9948,10 +9945,6 @@
       return this.parent.nodes[index - 1]
     }
 
-    get proxyOf() {
-      return this
-    }
-
     rangeBy(opts) {
       let start = {
         column: this.source.start.column,
@@ -10118,6 +10111,10 @@
       let data = { node: this };
       for (let i in opts) data[i] = opts[i];
       return result.warn(text, data)
+    }
+
+    get proxyOf() {
+      return this
     }
   };
 
@@ -10354,6 +10351,8 @@
    * @author   Feross Aboukhadijeh <feross@feross.org> <http://feross.org>
    * @license  MIT
    */
+  /* eslint-disable no-proto */
+
 
   var INSPECT_MAX_BYTES = 50;
 
@@ -13876,10 +13875,6 @@
       return result
     }
 
-    get from() {
-      return this.file || this.id
-    }
-
     fromOffset(offset) {
       let lastLine, lineToIndex;
       if (!this[fromOffsetCache]) {
@@ -13990,6 +13985,10 @@
       }
       return json
     }
+
+    get from() {
+      return this.file || this.id
+    }
   };
 
   var input = Input$4;
@@ -14015,7 +14014,12 @@
       this.root = root;
       this.opts = opts;
       this.css = cssString;
+      this.originalCSS = cssString;
       this.usesFileUrls = !this.mapOpts.from && this.mapOpts.absolute;
+
+      this.memoizedFileURLs = new Map();
+      this.memoizedPaths = new Map();
+      this.memoizedURLs = new Map();
     }
 
     addAnnotation() {
@@ -14046,7 +14050,7 @@
         if (this.mapOpts.sourcesContent === false) {
           map = new SourceMapConsumer(prev.text);
           if (map.sourcesContent) {
-            map.sourcesContent = map.sourcesContent.map(() => null);
+            map.sourcesContent = null;
           }
         } else {
           map = prev.consumer();
@@ -14069,7 +14073,7 @@
           }
         }
       } else if (this.css) {
-        this.css = this.css.replace(/(\n)?\/\*#[\S\s]*?\*\/$/gm, '');
+        this.css = this.css.replace(/\n*?\/\*#[\S\s]*?\*\/$/gm, '');
       }
     }
 
@@ -14092,9 +14096,14 @@
       } else if (this.previous().length === 1) {
         let prev = this.previous()[0].consumer();
         prev.file = this.outputFile();
-        this.map = SourceMapGenerator.fromSourceMap(prev);
+        this.map = SourceMapGenerator.fromSourceMap(prev, {
+          ignoreInvalidMapping: true
+        });
       } else {
-        this.map = new SourceMapGenerator({ file: this.outputFile() });
+        this.map = new SourceMapGenerator({
+          file: this.outputFile(),
+          ignoreInvalidMapping: true
+        });
         this.map.addMapping({
           generated: { column: 0, line: 1 },
           original: { column: 0, line: 1 },
@@ -14117,7 +14126,10 @@
 
     generateString() {
       this.css = '';
-      this.map = new SourceMapGenerator({ file: this.outputFile() });
+      this.map = new SourceMapGenerator({
+        file: this.outputFile(),
+        ignoreInvalidMapping: true
+      });
 
       let line = 1;
       let column = 1;
@@ -14240,9 +14252,11 @@
     }
 
     path(file) {
-      if (file.indexOf('<') === 0) return file
-      if (/^\w+:\/\//.test(file)) return file
       if (this.mapOpts.absolute) return file
+      if (file.charCodeAt(0) === 60 /* `<` */) return file
+      if (/^\w+:\/\//.test(file)) return file
+      let cached = this.memoizedPaths.get(file);
+      if (cached) return cached
 
       let from = this.opts.to ? dirname(this.opts.to) : '.';
 
@@ -14250,8 +14264,10 @@
         from = dirname(resolve(from, this.mapOpts.annotation));
       }
 
-      file = relative(from, file);
-      return file
+      let path = relative(from, file);
+      this.memoizedPaths.set(file, path);
+
+      return path
     }
 
     previous() {
@@ -14267,7 +14283,7 @@
             }
           });
         } else {
-          let input = new Input$3(this.css, this.opts);
+          let input = new Input$3(this.originalCSS, this.opts);
           if (input.map) this.previousMaps.push(input.map);
         }
       }
@@ -14317,8 +14333,14 @@
     }
 
     toFileUrl(path) {
+      let cached = this.memoizedFileURLs.get(path);
+      if (cached) return cached
+
       if (pathToFileURL) {
-        return pathToFileURL(path).toString()
+        let fileURL = pathToFileURL(path).toString();
+        this.memoizedFileURLs.set(path, fileURL);
+
+        return fileURL
       } else {
         throw new Error(
           '`map.absolute` option is not available in this PostCSS build'
@@ -14327,10 +14349,17 @@
     }
 
     toUrl(path) {
+      let cached = this.memoizedURLs.get(path);
+      if (cached) return cached
+
       if (sep === '\\') {
         path = path.replace(/\\/g, '/');
       }
-      return encodeURI(path).replace(/[#?]/g, encodeURIComponent)
+
+      let url = encodeURI(path).replace(/[#?]/g, encodeURIComponent);
+      this.memoizedURLs.set(path, url);
+
+      return url
     }
   };
 
@@ -14410,11 +14439,6 @@
 
     every(condition) {
       return this.nodes.every(condition)
-    }
-
-    get first() {
-      if (!this.proxyOf.nodes) return undefined
-      return this.proxyOf.nodes[0]
     }
 
     getIterator() {
@@ -14523,14 +14547,11 @@
       return this
     }
 
-    get last() {
-      if (!this.proxyOf.nodes) return undefined
-      return this.proxyOf.nodes[this.proxyOf.nodes.length - 1]
-    }
-
     normalize(nodes, sample) {
       if (typeof nodes === 'string') {
         nodes = cleanSource(parse$4(nodes).nodes);
+      } else if (typeof nodes === 'undefined') {
+        nodes = [];
       } else if (Array.isArray(nodes)) {
         nodes = nodes.slice(0);
         for (let i of nodes) {
@@ -14741,6 +14762,16 @@
         }
       })
     }
+
+    get first() {
+      if (!this.proxyOf.nodes) return undefined
+      return this.proxyOf.nodes[0]
+    }
+
+    get last() {
+      if (!this.proxyOf.nodes) return undefined
+      return this.proxyOf.nodes[this.proxyOf.nodes.length - 1]
+    }
   };
 
   Container$7.registerParse = dependant => {
@@ -14878,10 +14909,6 @@
       this.map = undefined;
     }
 
-    get content() {
-      return this.css
-    }
-
     toString() {
       return this.css
     }
@@ -14901,6 +14928,10 @@
 
     warnings() {
       return this.messages.filter(i => i.type === 'warning')
+    }
+
+    get content() {
+      return this.css
     }
   };
 
@@ -14929,7 +14960,7 @@
 
   const RE_AT_END = /[\t\n\f\r "#'()/;[\\\]{}]/g;
   const RE_WORD_END = /[\t\n\f\r !"#'():;@[\\\]{}]|\/(?=\*)/g;
-  const RE_BAD_BRACKET = /.[\n"'(/\\]/;
+  const RE_BAD_BRACKET = /.[\r\n"'(/\\]/;
   const RE_HEX_ESCAPE = /[\da-f]/i;
 
   var tokenize = function tokenizer(input, options = {}) {
@@ -15367,7 +15398,6 @@
       this.current = this.root;
       this.spaces = '';
       this.semicolon = false;
-      this.customProperty = false;
 
       this.createTokenizer();
       this.root.source = { input, start: { column: 1, line: 1, offset: 0 } };
@@ -15404,6 +15434,7 @@
         if (brackets.length === 0) {
           if (type === ';') {
             node.source.end = this.getPosition(token[2]);
+            node.source.end.offset++;
             this.semicolon = true;
             break
           } else if (type === '{') {
@@ -15418,6 +15449,7 @@
               }
               if (prev) {
                 node.source.end = this.getPosition(prev[3] || prev[2]);
+                node.source.end.offset++;
               }
             }
             this.end(token);
@@ -15442,6 +15474,7 @@
         if (last) {
           token = params[params.length - 1];
           node.source.end = this.getPosition(token[3] || token[2]);
+          node.source.end.offset++;
           this.spaces = node.raws.between;
           node.raws.between = '';
         }
@@ -15510,6 +15543,7 @@
       let node = new Comment$2();
       this.init(node, token[2]);
       node.source.end = this.getPosition(token[3] || token[2]);
+      node.source.end.offset++;
 
       let text = token[1].slice(2, -2);
       if (/^\s*$/.test(text)) {
@@ -15541,6 +15575,7 @@
       node.source.end = this.getPosition(
         last[3] || last[2] || findLastWithPosition(tokens)
       );
+      node.source.end.offset++;
 
       while (tokens[0][0] !== 'word') {
         if (tokens.length === 1) this.unknownWord(tokens);
@@ -15659,6 +15694,7 @@
 
       if (this.current.parent) {
         this.current.source.end = this.getPosition(token[2]);
+        this.current.source.end.offset++;
         this.current = this.current.parent;
       } else {
         this.unexpectedClose(token);
@@ -15671,6 +15707,7 @@
         this.current.raws.semicolon = this.semicolon;
       }
       this.current.raws.after = (this.current.raws.after || '') + this.spaces;
+      this.root.source.end = this.getPosition(this.tokenizer.position());
     }
 
     freeSemicolon(token) {
@@ -16148,14 +16185,6 @@
       return this.async().catch(onRejected)
     }
 
-    get content() {
-      return this.stringify().content
-    }
-
-    get css() {
-      return this.stringify().css
-    }
-
     finally(onFinally) {
       return this.async().then(onFinally, onFinally)
     }
@@ -16203,18 +16232,6 @@
       return error
     }
 
-    get map() {
-      return this.stringify().map
-    }
-
-    get messages() {
-      return this.sync().messages
-    }
-
-    get opts() {
-      return this.result.opts
-    }
-
     prepareVisitors() {
       this.listeners = {};
       let add = (plugin, type, cb) => {
@@ -16251,14 +16268,6 @@
         }
       }
       this.hasListener = Object.keys(this.listeners).length > 0;
-    }
-
-    get processor() {
-      return this.result.processor
-    }
-
-    get root() {
-      return this.sync().root
     }
 
     async runAsync() {
@@ -16362,10 +16371,6 @@
       this.result.map = data[1];
 
       return this.result
-    }
-
-    get [Symbol.toStringTag]() {
-      return 'LazyResult'
     }
 
     sync() {
@@ -16519,6 +16524,38 @@
     warnings() {
       return this.sync().warnings()
     }
+
+    get content() {
+      return this.stringify().content
+    }
+
+    get css() {
+      return this.stringify().css
+    }
+
+    get map() {
+      return this.stringify().map
+    }
+
+    get messages() {
+      return this.sync().messages
+    }
+
+    get opts() {
+      return this.result.opts
+    }
+
+    get processor() {
+      return this.result.processor
+    }
+
+    get root() {
+      return this.sync().root
+    }
+
+    get [Symbol.toStringTag]() {
+      return 'LazyResult'
+    }
   };
 
   LazyResult$2.registerPostcss = dependant => {
@@ -16568,6 +16605,9 @@
         if (generatedMap) {
           this.result.map = generatedMap;
         }
+      } else {
+        map.clearAnnotation();
+        this.result.css = map.css;
       }
     }
 
@@ -16580,16 +16620,43 @@
       return this.async().catch(onRejected)
     }
 
+    finally(onFinally) {
+      return this.async().then(onFinally, onFinally)
+    }
+
+    sync() {
+      if (this.error) throw this.error
+      return this.result
+    }
+
+    then(onFulfilled, onRejected) {
+      if (browser$1.env.NODE_ENV !== 'production') {
+        if (!('from' in this._opts)) {
+          warnOnce(
+            'Without `from` option PostCSS could generate wrong source map ' +
+              'and will not find Browserslist config. Set it to CSS file path ' +
+              'or to `undefined` to prevent this warning.'
+          );
+        }
+      }
+
+      return this.async().then(onFulfilled, onRejected)
+    }
+
+    toString() {
+      return this._css
+    }
+
+    warnings() {
+      return []
+    }
+
     get content() {
       return this.result.css
     }
 
     get css() {
       return this.result.css
-    }
-
-    finally(onFinally) {
-      return this.async().then(onFinally, onFinally)
     }
 
     get map() {
@@ -16633,33 +16700,6 @@
     get [Symbol.toStringTag]() {
       return 'NoWorkResult'
     }
-
-    sync() {
-      if (this.error) throw this.error
-      return this.result
-    }
-
-    then(onFulfilled, onRejected) {
-      if (browser$1.env.NODE_ENV !== 'production') {
-        if (!('from' in this._opts)) {
-          warnOnce(
-            'Without `from` option PostCSS could generate wrong source map ' +
-              'and will not find Browserslist config. Set it to CSS file path ' +
-              'or to `undefined` to prevent this warning.'
-          );
-        }
-      }
-
-      return this.async().then(onFulfilled, onRejected)
-    }
-
-    toString() {
-      return this._css
-    }
-
-    warnings() {
-      return []
-    }
   };
 
   var noWorkResult = NoWorkResult$1;
@@ -16672,7 +16712,7 @@
 
   let Processor$1 = class Processor {
     constructor(plugins = []) {
-      this.version = '8.4.27';
+      this.version = '8.4.37';
       this.plugins = this.normalize(plugins);
     }
 
@@ -16708,10 +16748,10 @@
 
     process(css, opts = {}) {
       if (
-        this.plugins.length === 0 &&
-        typeof opts.parser === 'undefined' &&
-        typeof opts.stringifier === 'undefined' &&
-        typeof opts.syntax === 'undefined'
+        !this.plugins.length &&
+        !opts.parser &&
+        !opts.stringifier &&
+        !opts.syntax
       ) {
         return new NoWorkResult(this, css, opts)
       } else {
@@ -17181,9 +17221,11 @@
               delete frame.attribs[a];
               return;
             }
-            // If the value is empty, and this is a known non-boolean attribute, delete it
+            // If the value is empty, check if the attribute is in the allowedEmptyAttributes array.
+            // If it is not in the allowedEmptyAttributes array, and it is a known non-boolean attribute, delete it
             // List taken from https://html.spec.whatwg.org/multipage/indices.html#attributes-3
-            if (value === '' && (options.nonBooleanAttributes.includes(a) || options.nonBooleanAttributes.includes('*'))) {
+            if (value === '' && (!options.allowedEmptyAttributes.includes(a)) &&
+              (options.nonBooleanAttributes.includes(a) || options.nonBooleanAttributes.includes('*'))) {
               delete frame.attribs[a];
               return;
             }
@@ -17337,7 +17379,7 @@
               if (a === 'style') {
                 if (options.parseStyleAttributes) {
                   try {
-                    const abstractSyntaxTree = postcssParse(name + ' {' + value + '}');
+                    const abstractSyntaxTree = postcssParse(name + ' {' + value + '}', { map: false });
                     const filteredAST = filterCss(abstractSyntaxTree, options.allowedStyles);
 
                     value = stringifyStyleAttributes(filteredAST);
@@ -17360,6 +17402,8 @@
               result += ' ' + a;
               if (value && value.length) {
                 result += '="' + escapeHtml(value, true) + '"';
+              } else if (options.allowedEmptyAttributes.includes(a)) {
+                result += '=""';
               }
             } else {
               delete frame.attribs[a];
@@ -17762,6 +17806,9 @@
       // these attributes would make sense if we did.
       img: [ 'src', 'srcset', 'alt', 'title', 'width', 'height', 'loading' ]
     },
+    allowedEmptyAttributes: [
+      'alt'
+    ],
     // Lots of these won't come up by default because we don't allow them
     selfClosing: [ 'img', 'br', 'hr', 'area', 'base', 'basefont', 'input', 'link', 'meta' ],
     // URL schemes we permit
