@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  /*! js-yaml 4.1.0 https://github.com/nodeca/js-yaml @license MIT */
+  /*! js-yaml 4.1.1 https://github.com/nodeca/js-yaml @license MIT */
   function isNothing(subject) {
     return (typeof subject === 'undefined') || (subject === null);
   }
@@ -1212,6 +1212,22 @@
     );
   }
 
+  // set a property of a literal object, while protecting against prototype pollution,
+  // see https://github.com/nodeca/js-yaml/issues/164 for more details
+  function setProperty(object, key, value) {
+    // used for this specific key only because Object.defineProperty is slow
+    if (key === '__proto__') {
+      Object.defineProperty(object, key, {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        value: value
+      });
+    } else {
+      object[key] = value;
+    }
+  }
+
   var simpleEscapeCheck = new Array(256); // integer, for fast access
   var simpleEscapeMap = new Array(256);
   for (var i = 0; i < 256; i++) {
@@ -1390,7 +1406,7 @@
       key = sourceKeys[index];
 
       if (!_hasOwnProperty$1.call(destination, key)) {
-        destination[key] = source[key];
+        setProperty(destination, key, source[key]);
         overridableKeys[key] = true;
       }
     }
@@ -1450,17 +1466,7 @@
         throwError(state, 'duplicated mapping key');
       }
 
-      // used for this specific key only because Object.defineProperty is slow
-      if (keyNode === '__proto__') {
-        Object.defineProperty(_result, keyNode, {
-          configurable: true,
-          enumerable: true,
-          writable: true,
-          value: valueNode
-        });
-      } else {
-        _result[keyNode] = valueNode;
-      }
+      setProperty(_result, keyNode, valueNode);
       delete overridableKeys[keyNode];
     }
 
@@ -3854,11 +3860,15 @@
   }
 
   function getAugmentedNamespace(n) {
-    if (n.__esModule) return n;
+    if (Object.prototype.hasOwnProperty.call(n, '__esModule')) return n;
     var f = n.default;
   	if (typeof f == "function") {
   		var a = function a () {
-  			if (this instanceof a) {
+  			var isInstance = false;
+        try {
+          isInstance = this instanceof a;
+        } catch {}
+  			if (isInstance) {
           return Reflect.construct(f, arguments, this.constructor);
   			}
   			return f.apply(this, arguments);
@@ -3929,11 +3939,11 @@
   function requireDecode_codepoint () {
   	if (hasRequiredDecode_codepoint) return decode_codepoint;
   	hasRequiredDecode_codepoint = 1;
-  	(function (exports) {
+  	(function (exports$1) {
   		// Adapted from https://github.com/mathiasbynens/he/blob/36afe179392226cf1b6ccdb16ebbb7a5a844d93a/src/he.js#L106-L134
   		var _a;
-  		Object.defineProperty(exports, "__esModule", { value: true });
-  		exports.replaceCodePoint = exports.fromCodePoint = undefined;
+  		Object.defineProperty(exports$1, "__esModule", { value: true });
+  		exports$1.replaceCodePoint = exports$1.fromCodePoint = void 0;
   		var decodeMap = new Map([
   		    [0, 65533],
   		    // C1 Unicode control character reference replacements
@@ -3968,9 +3978,9 @@
   		/**
   		 * Polyfill for `String.fromCodePoint`. It is used to create a string from a Unicode code point.
   		 */
-  		exports.fromCodePoint = 
+  		exports$1.fromCodePoint = 
   		// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, node/no-unsupported-features/es-builtins
-  		(_a = String.fromCodePoint) !== null && _a !== undefined ? _a : function (codePoint) {
+  		(_a = String.fromCodePoint) !== null && _a !== void 0 ? _a : function (codePoint) {
   		    var output = "";
   		    if (codePoint > 0xffff) {
   		        codePoint -= 0x10000;
@@ -3990,9 +4000,9 @@
   		    if ((codePoint >= 0xd800 && codePoint <= 0xdfff) || codePoint > 0x10ffff) {
   		        return 0xfffd;
   		    }
-  		    return (_a = decodeMap.get(codePoint)) !== null && _a !== undefined ? _a : codePoint;
+  		    return (_a = decodeMap.get(codePoint)) !== null && _a !== void 0 ? _a : codePoint;
   		}
-  		exports.replaceCodePoint = replaceCodePoint;
+  		exports$1.replaceCodePoint = replaceCodePoint;
   		/**
   		 * Replace the code point if relevant, then convert it to a string.
   		 *
@@ -4001,9 +4011,9 @@
   		 * @returns The decoded code point.
   		 */
   		function decodeCodePoint(codePoint) {
-  		    return (0, exports.fromCodePoint)(replaceCodePoint(codePoint));
+  		    return (0, exports$1.fromCodePoint)(replaceCodePoint(codePoint));
   		}
-  		exports.default = decodeCodePoint;
+  		exports$1.default = decodeCodePoint;
   		
   	} (decode_codepoint));
   	return decode_codepoint;
@@ -4014,8 +4024,8 @@
   function requireDecode () {
   	if (hasRequiredDecode) return decode;
   	hasRequiredDecode = 1;
-  	(function (exports) {
-  		var __createBinding = (decode.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+  	(function (exports$1) {
+  		var __createBinding = (decode && decode.__createBinding) || (Object.create ? (function(o, m, k, k2) {
   		    if (k2 === undefined) k2 = k;
   		    var desc = Object.getOwnPropertyDescriptor(m, k);
   		    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -4026,32 +4036,32 @@
   		    if (k2 === undefined) k2 = k;
   		    o[k2] = m[k];
   		}));
-  		var __setModuleDefault = (decode.__setModuleDefault) || (Object.create ? (function(o, v) {
+  		var __setModuleDefault = (decode && decode.__setModuleDefault) || (Object.create ? (function(o, v) {
   		    Object.defineProperty(o, "default", { enumerable: true, value: v });
   		}) : function(o, v) {
   		    o["default"] = v;
   		});
-  		var __importStar = (decode.__importStar) || function (mod) {
+  		var __importStar = (decode && decode.__importStar) || function (mod) {
   		    if (mod && mod.__esModule) return mod;
   		    var result = {};
   		    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
   		    __setModuleDefault(result, mod);
   		    return result;
   		};
-  		var __importDefault = (decode.__importDefault) || function (mod) {
+  		var __importDefault = (decode && decode.__importDefault) || function (mod) {
   		    return (mod && mod.__esModule) ? mod : { "default": mod };
   		};
-  		Object.defineProperty(exports, "__esModule", { value: true });
-  		exports.decodeXML = exports.decodeHTMLStrict = exports.decodeHTMLAttribute = exports.decodeHTML = exports.determineBranch = exports.EntityDecoder = exports.DecodingMode = exports.BinTrieFlags = exports.fromCodePoint = exports.replaceCodePoint = exports.decodeCodePoint = exports.xmlDecodeTree = exports.htmlDecodeTree = undefined;
+  		Object.defineProperty(exports$1, "__esModule", { value: true });
+  		exports$1.decodeXML = exports$1.decodeHTMLStrict = exports$1.decodeHTMLAttribute = exports$1.decodeHTML = exports$1.determineBranch = exports$1.EntityDecoder = exports$1.DecodingMode = exports$1.BinTrieFlags = exports$1.fromCodePoint = exports$1.replaceCodePoint = exports$1.decodeCodePoint = exports$1.xmlDecodeTree = exports$1.htmlDecodeTree = void 0;
   		var decode_data_html_js_1 = __importDefault(/*@__PURE__*/ requireDecodeDataHtml());
-  		exports.htmlDecodeTree = decode_data_html_js_1.default;
+  		exports$1.htmlDecodeTree = decode_data_html_js_1.default;
   		var decode_data_xml_js_1 = __importDefault(/*@__PURE__*/ requireDecodeDataXml());
-  		exports.xmlDecodeTree = decode_data_xml_js_1.default;
+  		exports$1.xmlDecodeTree = decode_data_xml_js_1.default;
   		var decode_codepoint_js_1 = __importStar(/*@__PURE__*/ requireDecode_codepoint());
-  		exports.decodeCodePoint = decode_codepoint_js_1.default;
+  		exports$1.decodeCodePoint = decode_codepoint_js_1.default;
   		var decode_codepoint_js_2 = /*@__PURE__*/ requireDecode_codepoint();
-  		Object.defineProperty(exports, "replaceCodePoint", { enumerable: true, get: function () { return decode_codepoint_js_2.replaceCodePoint; } });
-  		Object.defineProperty(exports, "fromCodePoint", { enumerable: true, get: function () { return decode_codepoint_js_2.fromCodePoint; } });
+  		Object.defineProperty(exports$1, "replaceCodePoint", { enumerable: true, get: function () { return decode_codepoint_js_2.replaceCodePoint; } });
+  		Object.defineProperty(exports$1, "fromCodePoint", { enumerable: true, get: function () { return decode_codepoint_js_2.fromCodePoint; } });
   		var CharCodes;
   		(function (CharCodes) {
   		    CharCodes[CharCodes["NUM"] = 35] = "NUM";
@@ -4074,7 +4084,7 @@
   		    BinTrieFlags[BinTrieFlags["VALUE_LENGTH"] = 49152] = "VALUE_LENGTH";
   		    BinTrieFlags[BinTrieFlags["BRANCH_LENGTH"] = 16256] = "BRANCH_LENGTH";
   		    BinTrieFlags[BinTrieFlags["JUMP_TABLE"] = 127] = "JUMP_TABLE";
-  		})(BinTrieFlags = exports.BinTrieFlags || (exports.BinTrieFlags = {}));
+  		})(BinTrieFlags = exports$1.BinTrieFlags || (exports$1.BinTrieFlags = {}));
   		function isNumber(code) {
   		    return code >= CharCodes.ZERO && code <= CharCodes.NINE;
   		}
@@ -4112,7 +4122,7 @@
   		    DecodingMode[DecodingMode["Strict"] = 1] = "Strict";
   		    /** Entities in attributes have limitations on ending characters. */
   		    DecodingMode[DecodingMode["Attribute"] = 2] = "Attribute";
-  		})(DecodingMode = exports.DecodingMode || (exports.DecodingMode = {}));
+  		})(DecodingMode = exports$1.DecodingMode || (exports$1.DecodingMode = {}));
   		/**
   		 * Token decoder with support of writing partial entities.
   		 */
@@ -4293,7 +4303,7 @@
   		        var _a;
   		        // Ensure we consumed at least one digit.
   		        if (this.consumed <= expectedLength) {
-  		            (_a = this.errors) === null || _a === undefined ? undefined : _a.absenceOfDigitsInNumericCharacterReference(this.consumed);
+  		            (_a = this.errors) === null || _a === void 0 ? void 0 : _a.absenceOfDigitsInNumericCharacterReference(this.consumed);
   		            return 0;
   		        }
   		        // Figure out if this is a legit end of the entity
@@ -4368,7 +4378,7 @@
   		        var _b = this, result = _b.result, decodeTree = _b.decodeTree;
   		        var valueLength = (decodeTree[result] & BinTrieFlags.VALUE_LENGTH) >> 14;
   		        this.emitNamedEntityData(result, valueLength, this.consumed);
-  		        (_a = this.errors) === null || _a === undefined ? undefined : _a.missingSemicolonAfterCharacterReference();
+  		        (_a = this.errors) === null || _a === void 0 ? void 0 : _a.missingSemicolonAfterCharacterReference();
   		        return this.consumed;
   		    };
   		    /**
@@ -4417,7 +4427,7 @@
   		                return this.emitNumericEntity(0, 3);
   		            }
   		            case EntityDecoderState.NumericStart: {
-  		                (_a = this.errors) === null || _a === undefined ? undefined : _a.absenceOfDigitsInNumericCharacterReference(this.consumed);
+  		                (_a = this.errors) === null || _a === void 0 ? void 0 : _a.absenceOfDigitsInNumericCharacterReference(this.consumed);
   		                return 0;
   		            }
   		            case EntityDecoderState.EntityStart: {
@@ -4428,7 +4438,7 @@
   		    };
   		    return EntityDecoder;
   		}());
-  		exports.EntityDecoder = EntityDecoder;
+  		exports$1.EntityDecoder = EntityDecoder;
   		/**
   		 * Creates a function that decodes entities in a string.
   		 *
@@ -4504,7 +4514,7 @@
   		    }
   		    return -1;
   		}
-  		exports.determineBranch = determineBranch;
+  		exports$1.determineBranch = determineBranch;
   		var htmlDecoder = getDecoder(decode_data_html_js_1.default);
   		var xmlDecoder = getDecoder(decode_data_xml_js_1.default);
   		/**
@@ -4515,10 +4525,10 @@
   		 * @returns The decoded string.
   		 */
   		function decodeHTML(str, mode) {
-  		    if (mode === undefined) { mode = DecodingMode.Legacy; }
+  		    if (mode === void 0) { mode = DecodingMode.Legacy; }
   		    return htmlDecoder(str, mode);
   		}
-  		exports.decodeHTML = decodeHTML;
+  		exports$1.decodeHTML = decodeHTML;
   		/**
   		 * Decodes an HTML string in an attribute.
   		 *
@@ -4528,7 +4538,7 @@
   		function decodeHTMLAttribute(str) {
   		    return htmlDecoder(str, DecodingMode.Attribute);
   		}
-  		exports.decodeHTMLAttribute = decodeHTMLAttribute;
+  		exports$1.decodeHTMLAttribute = decodeHTMLAttribute;
   		/**
   		 * Decodes an HTML string, requiring all entities to be terminated by a semicolon.
   		 *
@@ -4538,7 +4548,7 @@
   		function decodeHTMLStrict(str) {
   		    return htmlDecoder(str, DecodingMode.Strict);
   		}
-  		exports.decodeHTMLStrict = decodeHTMLStrict;
+  		exports$1.decodeHTMLStrict = decodeHTMLStrict;
   		/**
   		 * Decodes an XML string, requiring all entities to be terminated by a semicolon.
   		 *
@@ -4548,7 +4558,7 @@
   		function decodeXML(str) {
   		    return xmlDecoder(str, DecodingMode.Strict);
   		}
-  		exports.decodeXML = decodeXML;
+  		exports$1.decodeXML = decodeXML;
   		
   	} (decode));
   	return decode;
@@ -4559,9 +4569,9 @@
   function requireTokenizer () {
   	if (hasRequiredTokenizer) return Tokenizer;
   	hasRequiredTokenizer = 1;
-  	(function (exports) {
-  		Object.defineProperty(exports, "__esModule", { value: true });
-  		exports.QuoteType = undefined;
+  	(function (exports$1) {
+  		Object.defineProperty(exports$1, "__esModule", { value: true });
+  		exports$1.QuoteType = void 0;
   		var decode_js_1 = /*@__PURE__*/ requireDecode();
   		var CharCodes;
   		(function (CharCodes) {
@@ -4658,7 +4668,7 @@
   		    QuoteType[QuoteType["Unquoted"] = 1] = "Unquoted";
   		    QuoteType[QuoteType["Single"] = 2] = "Single";
   		    QuoteType[QuoteType["Double"] = 3] = "Double";
-  		})(QuoteType = exports.QuoteType || (exports.QuoteType = {}));
+  		})(QuoteType = exports$1.QuoteType || (exports$1.QuoteType = {}));
   		/**
   		 * Sequences used to match longer strings.
   		 *
@@ -4675,7 +4685,7 @@
   		};
   		var Tokenizer = /** @class */ (function () {
   		    function Tokenizer(_a, cbs) {
-  		        var _b = _a.xmlMode, xmlMode = _b === undefined ? false : _b, _c = _a.decodeEntities, decodeEntities = _c === undefined ? true : _c;
+  		        var _b = _a.xmlMode, xmlMode = _b === void 0 ? false : _b, _c = _a.decodeEntities, decodeEntities = _c === void 0 ? true : _c;
   		        this.cbs = cbs;
   		        /** The current state the tokenizer is in. */
   		        this.state = State.Text;
@@ -5486,7 +5496,7 @@
   		    };
   		    return Tokenizer;
   		}());
-  		exports.default = Tokenizer;
+  		exports$1.default = Tokenizer;
   		
   	} (Tokenizer));
   	return Tokenizer;
@@ -5497,7 +5507,7 @@
   function requireParser$1 () {
   	if (hasRequiredParser$1) return Parser;
   	hasRequiredParser$1 = 1;
-  	var __createBinding = (Parser.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+  	var __createBinding = (Parser && Parser.__createBinding) || (Object.create ? (function(o, m, k, k2) {
   	    if (k2 === undefined) k2 = k;
   	    var desc = Object.getOwnPropertyDescriptor(m, k);
   	    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -5508,12 +5518,12 @@
   	    if (k2 === undefined) k2 = k;
   	    o[k2] = m[k];
   	}));
-  	var __setModuleDefault = (Parser.__setModuleDefault) || (Object.create ? (function(o, v) {
+  	var __setModuleDefault = (Parser && Parser.__setModuleDefault) || (Object.create ? (function(o, v) {
   	    Object.defineProperty(o, "default", { enumerable: true, value: v });
   	}) : function(o, v) {
   	    o["default"] = v;
   	});
-  	var __importStar = (Parser.__importStar) || function (mod) {
+  	var __importStar = (Parser && Parser.__importStar) || function (mod) {
   	    if (mod && mod.__esModule) return mod;
   	    var result = {};
   	    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
@@ -5521,7 +5531,7 @@
   	    return result;
   	};
   	Object.defineProperty(Parser, "__esModule", { value: true });
-  	Parser.Parser = undefined;
+  	Parser.Parser = void 0;
   	var Tokenizer_js_1 = __importStar(/*@__PURE__*/ requireTokenizer());
   	var decode_js_1 = /*@__PURE__*/ requireDecode();
   	var formTags = new Set([
@@ -5622,7 +5632,7 @@
   	var reNameEnd = /\s|\//;
   	var Parser$1 = /** @class */ (function () {
   	    function Parser(cbs, options) {
-  	        if (options === undefined) { options = {}; }
+  	        if (options === void 0) { options = {}; }
   	        var _a, _b, _c, _d, _e;
   	        this.options = options;
   	        /** The start index of the last event. */
@@ -5646,12 +5656,12 @@
   	        this.writeIndex = 0;
   	        /** Indicates whether the parser has finished running / `.end` has been called. */
   	        this.ended = false;
-  	        this.cbs = cbs !== null && cbs !== undefined ? cbs : {};
-  	        this.lowerCaseTagNames = (_a = options.lowerCaseTags) !== null && _a !== undefined ? _a : !options.xmlMode;
+  	        this.cbs = cbs !== null && cbs !== void 0 ? cbs : {};
+  	        this.lowerCaseTagNames = (_a = options.lowerCaseTags) !== null && _a !== void 0 ? _a : !options.xmlMode;
   	        this.lowerCaseAttributeNames =
-  	            (_b = options.lowerCaseAttributeNames) !== null && _b !== undefined ? _b : !options.xmlMode;
-  	        this.tokenizer = new ((_c = options.Tokenizer) !== null && _c !== undefined ? _c : Tokenizer_js_1.default)(this.options, this);
-  	        (_e = (_d = this.cbs).onparserinit) === null || _e === undefined ? undefined : _e.call(_d, this);
+  	            (_b = options.lowerCaseAttributeNames) !== null && _b !== void 0 ? _b : !options.xmlMode;
+  	        this.tokenizer = new ((_c = options.Tokenizer) !== null && _c !== void 0 ? _c : Tokenizer_js_1.default)(this.options, this);
+  	        (_e = (_d = this.cbs).onparserinit) === null || _e === void 0 ? void 0 : _e.call(_d, this);
   	    }
   	    // Tokenizer event handlers
   	    /** @internal */
@@ -5659,7 +5669,7 @@
   	        var _a, _b;
   	        var data = this.getSlice(start, endIndex);
   	        this.endIndex = endIndex - 1;
-  	        (_b = (_a = this.cbs).ontext) === null || _b === undefined ? undefined : _b.call(_a, data);
+  	        (_b = (_a = this.cbs).ontext) === null || _b === void 0 ? void 0 : _b.call(_a, data);
   	        this.startIndex = endIndex;
   	    };
   	    /** @internal */
@@ -5671,7 +5681,7 @@
   	         */
   	        var index = this.tokenizer.getSectionStart();
   	        this.endIndex = index - 1;
-  	        (_b = (_a = this.cbs).ontext) === null || _b === undefined ? undefined : _b.call(_a, (0, decode_js_1.fromCodePoint)(cp));
+  	        (_b = (_a = this.cbs).ontext) === null || _b === void 0 ? void 0 : _b.call(_a, (0, decode_js_1.fromCodePoint)(cp));
   	        this.startIndex = index;
   	    };
   	    Parser.prototype.isVoidElement = function (name) {
@@ -5695,7 +5705,7 @@
   	            while (this.stack.length > 0 &&
   	                impliesClose.has(this.stack[this.stack.length - 1])) {
   	                var element = this.stack.pop();
-  	                (_b = (_a = this.cbs).onclosetag) === null || _b === undefined ? undefined : _b.call(_a, element, true);
+  	                (_b = (_a = this.cbs).onclosetag) === null || _b === void 0 ? void 0 : _b.call(_a, element, true);
   	            }
   	        }
   	        if (!this.isVoidElement(name)) {
@@ -5707,7 +5717,7 @@
   	                this.foreignContext.push(false);
   	            }
   	        }
-  	        (_d = (_c = this.cbs).onopentagname) === null || _d === undefined ? undefined : _d.call(_c, name);
+  	        (_d = (_c = this.cbs).onopentagname) === null || _d === void 0 ? void 0 : _d.call(_c, name);
   	        if (this.cbs.onopentag)
   	            this.attribs = {};
   	    };
@@ -5715,7 +5725,7 @@
   	        var _a, _b;
   	        this.startIndex = this.openTagStart;
   	        if (this.attribs) {
-  	            (_b = (_a = this.cbs).onopentag) === null || _b === undefined ? undefined : _b.call(_a, this.tagname, this.attribs, isImplied);
+  	            (_b = (_a = this.cbs).onopentag) === null || _b === void 0 ? void 0 : _b.call(_a, this.tagname, this.attribs, isImplied);
   	            this.attribs = null;
   	        }
   	        if (this.cbs.onclosetag && this.isVoidElement(this.tagname)) {
@@ -5763,9 +5773,9 @@
   	        }
   	        else if (!this.options.xmlMode && name === "br") {
   	            // We can't use `emitOpenTag` for implicit open, as `br` would be implicitly closed.
-  	            (_b = (_a = this.cbs).onopentagname) === null || _b === undefined ? undefined : _b.call(_a, "br");
-  	            (_d = (_c = this.cbs).onopentag) === null || _d === undefined ? undefined : _d.call(_c, "br", {}, true);
-  	            (_f = (_e = this.cbs).onclosetag) === null || _f === undefined ? undefined : _f.call(_e, "br", false);
+  	            (_b = (_a = this.cbs).onopentagname) === null || _b === void 0 ? void 0 : _b.call(_a, "br");
+  	            (_d = (_c = this.cbs).onopentag) === null || _d === void 0 ? void 0 : _d.call(_c, "br", {}, true);
+  	            (_f = (_e = this.cbs).onclosetag) === null || _f === void 0 ? void 0 : _f.call(_e, "br", false);
   	        }
   	        // Set `startIndex` for next node
   	        this.startIndex = endIndex + 1;
@@ -5792,7 +5802,7 @@
   	        // Self-closing tags will be on the top of the stack
   	        if (this.stack[this.stack.length - 1] === name) {
   	            // If the opening tag isn't implied, the closing tag has to be implied.
-  	            (_b = (_a = this.cbs).onclosetag) === null || _b === undefined ? undefined : _b.call(_a, name, !isOpenImplied);
+  	            (_b = (_a = this.cbs).onclosetag) === null || _b === void 0 ? void 0 : _b.call(_a, name, !isOpenImplied);
   	            this.stack.pop();
   	        }
   	    };
@@ -5816,7 +5826,7 @@
   	    Parser.prototype.onattribend = function (quote, endIndex) {
   	        var _a, _b;
   	        this.endIndex = endIndex;
-  	        (_b = (_a = this.cbs).onattribute) === null || _b === undefined ? undefined : _b.call(_a, this.attribname, this.attribvalue, quote === Tokenizer_js_1.QuoteType.Double
+  	        (_b = (_a = this.cbs).onattribute) === null || _b === void 0 ? void 0 : _b.call(_a, this.attribname, this.attribvalue, quote === Tokenizer_js_1.QuoteType.Double
   	            ? '"'
   	            : quote === Tokenizer_js_1.QuoteType.Single
   	                ? "'"
@@ -5863,8 +5873,8 @@
   	    Parser.prototype.oncomment = function (start, endIndex, offset) {
   	        var _a, _b, _c, _d;
   	        this.endIndex = endIndex;
-  	        (_b = (_a = this.cbs).oncomment) === null || _b === undefined ? undefined : _b.call(_a, this.getSlice(start, endIndex - offset));
-  	        (_d = (_c = this.cbs).oncommentend) === null || _d === undefined ? undefined : _d.call(_c);
+  	        (_b = (_a = this.cbs).oncomment) === null || _b === void 0 ? void 0 : _b.call(_a, this.getSlice(start, endIndex - offset));
+  	        (_d = (_c = this.cbs).oncommentend) === null || _d === void 0 ? void 0 : _d.call(_c);
   	        // Set `startIndex` for next node
   	        this.startIndex = endIndex + 1;
   	    };
@@ -5874,13 +5884,13 @@
   	        this.endIndex = endIndex;
   	        var value = this.getSlice(start, endIndex - offset);
   	        if (this.options.xmlMode || this.options.recognizeCDATA) {
-  	            (_b = (_a = this.cbs).oncdatastart) === null || _b === undefined ? undefined : _b.call(_a);
-  	            (_d = (_c = this.cbs).ontext) === null || _d === undefined ? undefined : _d.call(_c, value);
-  	            (_f = (_e = this.cbs).oncdataend) === null || _f === undefined ? undefined : _f.call(_e);
+  	            (_b = (_a = this.cbs).oncdatastart) === null || _b === void 0 ? void 0 : _b.call(_a);
+  	            (_d = (_c = this.cbs).ontext) === null || _d === void 0 ? void 0 : _d.call(_c, value);
+  	            (_f = (_e = this.cbs).oncdataend) === null || _f === void 0 ? void 0 : _f.call(_e);
   	        }
   	        else {
-  	            (_h = (_g = this.cbs).oncomment) === null || _h === undefined ? undefined : _h.call(_g, "[CDATA[".concat(value, "]]"));
-  	            (_k = (_j = this.cbs).oncommentend) === null || _k === undefined ? undefined : _k.call(_j);
+  	            (_h = (_g = this.cbs).oncomment) === null || _h === void 0 ? void 0 : _h.call(_g, "[CDATA[".concat(value, "]]"));
+  	            (_k = (_j = this.cbs).oncommentend) === null || _k === void 0 ? void 0 : _k.call(_j);
   	        }
   	        // Set `startIndex` for next node
   	        this.startIndex = endIndex + 1;
@@ -5894,14 +5904,14 @@
   	            for (var index = this.stack.length; index > 0; this.cbs.onclosetag(this.stack[--index], true))
   	                ;
   	        }
-  	        (_b = (_a = this.cbs).onend) === null || _b === undefined ? undefined : _b.call(_a);
+  	        (_b = (_a = this.cbs).onend) === null || _b === void 0 ? void 0 : _b.call(_a);
   	    };
   	    /**
   	     * Resets the parser to a blank state, ready to parse a new HTML document
   	     */
   	    Parser.prototype.reset = function () {
   	        var _a, _b, _c, _d;
-  	        (_b = (_a = this.cbs).onreset) === null || _b === undefined ? undefined : _b.call(_a);
+  	        (_b = (_a = this.cbs).onreset) === null || _b === void 0 ? void 0 : _b.call(_a);
   	        this.tokenizer.reset();
   	        this.tagname = "";
   	        this.attribname = "";
@@ -5909,7 +5919,7 @@
   	        this.stack.length = 0;
   	        this.startIndex = 0;
   	        this.endIndex = 0;
-  	        (_d = (_c = this.cbs).onparserinit) === null || _d === undefined ? undefined : _d.call(_c, this);
+  	        (_d = (_c = this.cbs).onparserinit) === null || _d === void 0 ? void 0 : _d.call(_c, this);
   	        this.buffers.length = 0;
   	        this.bufferOffset = 0;
   	        this.writeIndex = 0;
@@ -5949,7 +5959,7 @@
   	    Parser.prototype.write = function (chunk) {
   	        var _a, _b;
   	        if (this.ended) {
-  	            (_b = (_a = this.cbs).onerror) === null || _b === undefined ? undefined : _b.call(_a, new Error(".write() after done!"));
+  	            (_b = (_a = this.cbs).onerror) === null || _b === void 0 ? void 0 : _b.call(_a, new Error(".write() after done!"));
   	            return;
   	        }
   	        this.buffers.push(chunk);
@@ -5966,7 +5976,7 @@
   	    Parser.prototype.end = function (chunk) {
   	        var _a, _b;
   	        if (this.ended) {
-  	            (_b = (_a = this.cbs).onerror) === null || _b === undefined ? undefined : _b.call(_a, new Error(".end() after done!"));
+  	            (_b = (_a = this.cbs).onerror) === null || _b === void 0 ? void 0 : _b.call(_a, new Error(".end() after done!"));
   	            return;
   	        }
   	        if (chunk)
@@ -6026,9 +6036,9 @@
   function requireLib$5 () {
   	if (hasRequiredLib$5) return lib$3;
   	hasRequiredLib$5 = 1;
-  	(function (exports) {
-  		Object.defineProperty(exports, "__esModule", { value: true });
-  		exports.Doctype = exports.CDATA = exports.Tag = exports.Style = exports.Script = exports.Comment = exports.Directive = exports.Text = exports.Root = exports.isTag = exports.ElementType = undefined;
+  	(function (exports$1) {
+  		Object.defineProperty(exports$1, "__esModule", { value: true });
+  		exports$1.Doctype = exports$1.CDATA = exports$1.Tag = exports$1.Style = exports$1.Script = exports$1.Comment = exports$1.Directive = exports$1.Text = exports$1.Root = exports$1.isTag = exports$1.ElementType = void 0;
   		/** Types of elements found in htmlparser2's DOM */
   		var ElementType;
   		(function (ElementType) {
@@ -6050,7 +6060,7 @@
   		    ElementType["CDATA"] = "cdata";
   		    /** Type for <!doctype ...> */
   		    ElementType["Doctype"] = "doctype";
-  		})(ElementType = exports.ElementType || (exports.ElementType = {}));
+  		})(ElementType = exports$1.ElementType || (exports$1.ElementType = {}));
   		/**
   		 * Tests whether an element is a tag or not.
   		 *
@@ -6061,26 +6071,26 @@
   		        elem.type === ElementType.Script ||
   		        elem.type === ElementType.Style);
   		}
-  		exports.isTag = isTag;
+  		exports$1.isTag = isTag;
   		// Exports for backwards compatibility
   		/** Type for the root element of a document */
-  		exports.Root = ElementType.Root;
+  		exports$1.Root = ElementType.Root;
   		/** Type for Text */
-  		exports.Text = ElementType.Text;
+  		exports$1.Text = ElementType.Text;
   		/** Type for <? ... ?> */
-  		exports.Directive = ElementType.Directive;
+  		exports$1.Directive = ElementType.Directive;
   		/** Type for <!-- ... --> */
-  		exports.Comment = ElementType.Comment;
+  		exports$1.Comment = ElementType.Comment;
   		/** Type for <script> tags */
-  		exports.Script = ElementType.Script;
+  		exports$1.Script = ElementType.Script;
   		/** Type for <style> tags */
-  		exports.Style = ElementType.Style;
+  		exports$1.Style = ElementType.Style;
   		/** Type for Any tag */
-  		exports.Tag = ElementType.Tag;
+  		exports$1.Tag = ElementType.Tag;
   		/** Type for <![CDATA[ ... ]]> */
-  		exports.CDATA = ElementType.CDATA;
+  		exports$1.CDATA = ElementType.CDATA;
   		/** Type for <!doctype ...> */
-  		exports.Doctype = ElementType.Doctype; 
+  		exports$1.Doctype = ElementType.Doctype; 
   	} (lib$3));
   	return lib$3;
   }
@@ -6092,7 +6102,7 @@
   function requireNode$1 () {
   	if (hasRequiredNode$1) return node$1;
   	hasRequiredNode$1 = 1;
-  	var __extends = (node$1.__extends) || (function () {
+  	var __extends = (node$1 && node$1.__extends) || (function () {
   	    var extendStatics = function (d, b) {
   	        extendStatics = Object.setPrototypeOf ||
   	            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
@@ -6107,7 +6117,7 @@
   	        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
   	    };
   	})();
-  	var __assign = (node$1.__assign) || function () {
+  	var __assign = (node$1 && node$1.__assign) || function () {
   	    __assign = Object.assign || function(t) {
   	        for (var s, i = 1, n = arguments.length; i < n; i++) {
   	            s = arguments[i];
@@ -6119,7 +6129,7 @@
   	    return __assign.apply(this, arguments);
   	};
   	Object.defineProperty(node$1, "__esModule", { value: true });
-  	node$1.cloneNode = node$1.hasChildren = node$1.isDocument = node$1.isDirective = node$1.isComment = node$1.isText = node$1.isCDATA = node$1.isTag = node$1.Element = node$1.Document = node$1.CDATA = node$1.NodeWithChildren = node$1.ProcessingInstruction = node$1.Comment = node$1.Text = node$1.DataNode = node$1.Node = undefined;
+  	node$1.cloneNode = node$1.hasChildren = node$1.isDocument = node$1.isDirective = node$1.isComment = node$1.isText = node$1.isCDATA = node$1.isTag = node$1.Element = node$1.Document = node$1.CDATA = node$1.NodeWithChildren = node$1.ProcessingInstruction = node$1.Comment = node$1.Text = node$1.DataNode = node$1.Node = void 0;
   	var domelementtype_1 = /*@__PURE__*/ requireLib$5();
   	/**
   	 * This object will be used as the prototype for Nodes when creating a
@@ -6188,7 +6198,7 @@
   	     * @returns A clone of the node.
   	     */
   	    Node.prototype.cloneNode = function (recursive) {
-  	        if (recursive === undefined) { recursive = false; }
+  	        if (recursive === void 0) { recursive = false; }
   	        return cloneNode(this, recursive);
   	    };
   	    return Node;
@@ -6303,7 +6313,7 @@
   	        /** First child of the node. */
   	        get: function () {
   	            var _a;
-  	            return (_a = this.children[0]) !== null && _a !== undefined ? _a : null;
+  	            return (_a = this.children[0]) !== null && _a !== void 0 ? _a : null;
   	        },
   	        enumerable: false,
   	        configurable: true
@@ -6383,8 +6393,8 @@
   	     * @param children Children of the node.
   	     */
   	    function Element(name, attribs, children, type) {
-  	        if (children === undefined) { children = []; }
-  	        if (type === undefined) { type = name === "script"
+  	        if (children === void 0) { children = []; }
+  	        if (type === void 0) { type = name === "script"
   	            ? domelementtype_1.ElementType.Script
   	            : name === "style"
   	                ? domelementtype_1.ElementType.Style
@@ -6425,8 +6435,8 @@
   	                return ({
   	                    name: name,
   	                    value: _this.attribs[name],
-  	                    namespace: (_a = _this["x-attribsNamespace"]) === null || _a === undefined ? undefined : _a[name],
-  	                    prefix: (_b = _this["x-attribsPrefix"]) === null || _b === undefined ? undefined : _b[name],
+  	                    namespace: (_a = _this["x-attribsNamespace"]) === null || _a === void 0 ? void 0 : _a[name],
+  	                    prefix: (_b = _this["x-attribsPrefix"]) === null || _b === void 0 ? void 0 : _b[name],
   	                });
   	            });
   	        },
@@ -6499,7 +6509,7 @@
   	 * @returns A clone of the node.
   	 */
   	function cloneNode(node, recursive) {
-  	    if (recursive === undefined) { recursive = false; }
+  	    if (recursive === void 0) { recursive = false; }
   	    var result;
   	    if (isText(node)) {
   	        result = new Text(node.data);
@@ -6573,8 +6583,8 @@
   function requireLib$4 () {
   	if (hasRequiredLib$4) return lib$4;
   	hasRequiredLib$4 = 1;
-  	(function (exports) {
-  		var __createBinding = (lib$4.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+  	(function (exports$1) {
+  		var __createBinding = (lib$4 && lib$4.__createBinding) || (Object.create ? (function(o, m, k, k2) {
   		    if (k2 === undefined) k2 = k;
   		    var desc = Object.getOwnPropertyDescriptor(m, k);
   		    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -6585,14 +6595,14 @@
   		    if (k2 === undefined) k2 = k;
   		    o[k2] = m[k];
   		}));
-  		var __exportStar = (lib$4.__exportStar) || function(m, exports) {
-  		    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+  		var __exportStar = (lib$4 && lib$4.__exportStar) || function(m, exports$1) {
+  		    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports$1, p)) __createBinding(exports$1, m, p);
   		};
-  		Object.defineProperty(exports, "__esModule", { value: true });
-  		exports.DomHandler = undefined;
+  		Object.defineProperty(exports$1, "__esModule", { value: true });
+  		exports$1.DomHandler = void 0;
   		var domelementtype_1 = /*@__PURE__*/ requireLib$5();
   		var node_js_1 = /*@__PURE__*/ requireNode$1();
-  		__exportStar(/*@__PURE__*/ requireNode$1(), exports);
+  		__exportStar(/*@__PURE__*/ requireNode$1(), exports$1);
   		// Default options
   		var defaultOpts = {
   		    withStartIndices: false,
@@ -6627,9 +6637,9 @@
   		            options = callback;
   		            callback = undefined;
   		        }
-  		        this.callback = callback !== null && callback !== undefined ? callback : null;
-  		        this.options = options !== null && options !== undefined ? options : defaultOpts;
-  		        this.elementCB = elementCB !== null && elementCB !== undefined ? elementCB : null;
+  		        this.callback = callback !== null && callback !== void 0 ? callback : null;
+  		        this.options = options !== null && options !== void 0 ? options : defaultOpts;
+  		        this.elementCB = elementCB !== null && elementCB !== void 0 ? elementCB : null;
   		    }
   		    DomHandler.prototype.onparserinit = function (parser) {
   		        this.parser = parser;
@@ -6736,8 +6746,8 @@
   		    };
   		    return DomHandler;
   		}());
-  		exports.DomHandler = DomHandler;
-  		exports.default = DomHandler; 
+  		exports$1.DomHandler = DomHandler;
+  		exports$1.default = DomHandler; 
   	} (lib$4));
   	return lib$4;
   }
@@ -6780,10 +6790,10 @@
   function require_escape () {
   	if (hasRequired_escape) return _escape;
   	hasRequired_escape = 1;
-  	(function (exports) {
-  		Object.defineProperty(exports, "__esModule", { value: true });
-  		exports.escapeText = exports.escapeAttribute = exports.escapeUTF8 = exports.escape = exports.encodeXML = exports.getCodePoint = exports.xmlReplacer = undefined;
-  		exports.xmlReplacer = /["&'<>$\x80-\uFFFF]/g;
+  	(function (exports$1) {
+  		Object.defineProperty(exports$1, "__esModule", { value: true });
+  		exports$1.escapeText = exports$1.escapeAttribute = exports$1.escapeUTF8 = exports$1.escape = exports$1.encodeXML = exports$1.getCodePoint = exports$1.xmlReplacer = void 0;
+  		exports$1.xmlReplacer = /["&'<>$\x80-\uFFFF]/g;
   		var xmlCodeMap = new Map([
   		    [34, "&quot;"],
   		    [38, "&amp;"],
@@ -6792,7 +6802,7 @@
   		    [62, "&gt;"],
   		]);
   		// For compatibility with node < 4, we wrap `codePointAt`
-  		exports.getCodePoint = 
+  		exports$1.getCodePoint = 
   		// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   		String.prototype.codePointAt != null
   		    ? function (str, index) { return str.codePointAt(index); }
@@ -6816,7 +6826,7 @@
   		    var ret = "";
   		    var lastIdx = 0;
   		    var match;
-  		    while ((match = exports.xmlReplacer.exec(str)) !== null) {
+  		    while ((match = exports$1.xmlReplacer.exec(str)) !== null) {
   		        var i = match.index;
   		        var char = str.charCodeAt(i);
   		        var next = xmlCodeMap.get(char);
@@ -6825,14 +6835,14 @@
   		            lastIdx = i + 1;
   		        }
   		        else {
-  		            ret += "".concat(str.substring(lastIdx, i), "&#x").concat((0, exports.getCodePoint)(str, i).toString(16), ";");
+  		            ret += "".concat(str.substring(lastIdx, i), "&#x").concat((0, exports$1.getCodePoint)(str, i).toString(16), ";");
   		            // Increase by 1 if we have a surrogate pair
-  		            lastIdx = exports.xmlReplacer.lastIndex += Number((char & 0xfc00) === 0xd800);
+  		            lastIdx = exports$1.xmlReplacer.lastIndex += Number((char & 0xfc00) === 0xd800);
   		        }
   		    }
   		    return ret + str.substr(lastIdx);
   		}
-  		exports.encodeXML = encodeXML;
+  		exports$1.encodeXML = encodeXML;
   		/**
   		 * Encodes all non-ASCII characters, as well as characters not valid in XML
   		 * documents using numeric hexadecimal reference (eg. `&#xfc;`).
@@ -6842,7 +6852,7 @@
   		 *
   		 * @param data String to escape.
   		 */
-  		exports.escape = encodeXML;
+  		exports$1.escape = encodeXML;
   		/**
   		 * Creates a function that escapes all characters matched by the given regular
   		 * expression using the given map of characters to escape to their entities.
@@ -6877,14 +6887,14 @@
   		 *
   		 * @param data String to escape.
   		 */
-  		exports.escapeUTF8 = getEscaper(/[&<>'"]/g, xmlCodeMap);
+  		exports$1.escapeUTF8 = getEscaper(/[&<>'"]/g, xmlCodeMap);
   		/**
   		 * Encodes all characters that have to be escaped in HTML attributes,
   		 * following {@link https://html.spec.whatwg.org/multipage/parsing.html#escapingString}.
   		 *
   		 * @param data String to escape.
   		 */
-  		exports.escapeAttribute = getEscaper(/["&\u00A0]/g, new Map([
+  		exports$1.escapeAttribute = getEscaper(/["&\u00A0]/g, new Map([
   		    [34, "&quot;"],
   		    [38, "&amp;"],
   		    [160, "&nbsp;"],
@@ -6895,7 +6905,7 @@
   		 *
   		 * @param data String to escape.
   		 */
-  		exports.escapeText = getEscaper(/[&<>\u00A0]/g, new Map([
+  		exports$1.escapeText = getEscaper(/[&<>\u00A0]/g, new Map([
   		    [38, "&amp;"],
   		    [60, "&lt;"],
   		    [62, "&gt;"],
@@ -6911,11 +6921,11 @@
   function requireEncode () {
   	if (hasRequiredEncode) return encode$1;
   	hasRequiredEncode = 1;
-  	var __importDefault = (encode$1.__importDefault) || function (mod) {
+  	var __importDefault = (encode$1 && encode$1.__importDefault) || function (mod) {
   	    return (mod && mod.__esModule) ? mod : { "default": mod };
   	};
   	Object.defineProperty(encode$1, "__esModule", { value: true });
-  	encode$1.encodeNonAsciiHTML = encode$1.encodeHTML = undefined;
+  	encode$1.encodeNonAsciiHTML = encode$1.encodeHTML = void 0;
   	var encode_html_js_1 = __importDefault(/*@__PURE__*/ requireEncodeHtml());
   	var escape_js_1 = /*@__PURE__*/ require_escape();
   	var htmlReplacer = /[\t\n!-,./:-@[-`\f{-}$\x80-\uFFFF]/g;
@@ -6995,9 +7005,9 @@
   function requireLib$3 () {
   	if (hasRequiredLib$3) return lib;
   	hasRequiredLib$3 = 1;
-  	(function (exports) {
-  		Object.defineProperty(exports, "__esModule", { value: true });
-  		exports.decodeXMLStrict = exports.decodeHTML5Strict = exports.decodeHTML4Strict = exports.decodeHTML5 = exports.decodeHTML4 = exports.decodeHTMLAttribute = exports.decodeHTMLStrict = exports.decodeHTML = exports.decodeXML = exports.DecodingMode = exports.EntityDecoder = exports.encodeHTML5 = exports.encodeHTML4 = exports.encodeNonAsciiHTML = exports.encodeHTML = exports.escapeText = exports.escapeAttribute = exports.escapeUTF8 = exports.escape = exports.encodeXML = exports.encode = exports.decodeStrict = exports.decode = exports.EncodingMode = exports.EntityLevel = undefined;
+  	(function (exports$1) {
+  		Object.defineProperty(exports$1, "__esModule", { value: true });
+  		exports$1.decodeXMLStrict = exports$1.decodeHTML5Strict = exports$1.decodeHTML4Strict = exports$1.decodeHTML5 = exports$1.decodeHTML4 = exports$1.decodeHTMLAttribute = exports$1.decodeHTMLStrict = exports$1.decodeHTML = exports$1.decodeXML = exports$1.DecodingMode = exports$1.EntityDecoder = exports$1.encodeHTML5 = exports$1.encodeHTML4 = exports$1.encodeNonAsciiHTML = exports$1.encodeHTML = exports$1.escapeText = exports$1.escapeAttribute = exports$1.escapeUTF8 = exports$1.escape = exports$1.encodeXML = exports$1.encode = exports$1.decodeStrict = exports$1.decode = exports$1.EncodingMode = exports$1.EntityLevel = void 0;
   		var decode_js_1 = /*@__PURE__*/ requireDecode();
   		var encode_js_1 = /*@__PURE__*/ requireEncode();
   		var escape_js_1 = /*@__PURE__*/ require_escape();
@@ -7008,7 +7018,7 @@
   		    EntityLevel[EntityLevel["XML"] = 0] = "XML";
   		    /** Support HTML entities, which are a superset of XML entities. */
   		    EntityLevel[EntityLevel["HTML"] = 1] = "HTML";
-  		})(EntityLevel = exports.EntityLevel || (exports.EntityLevel = {}));
+  		})(EntityLevel = exports$1.EntityLevel || (exports$1.EntityLevel = {}));
   		var EncodingMode;
   		(function (EncodingMode) {
   		    /**
@@ -7037,7 +7047,7 @@
   		     * following {@link https://html.spec.whatwg.org/multipage/parsing.html#escapingString}.
   		     */
   		    EncodingMode[EncodingMode["Text"] = 4] = "Text";
-  		})(EncodingMode = exports.EncodingMode || (exports.EncodingMode = {}));
+  		})(EncodingMode = exports$1.EncodingMode || (exports$1.EncodingMode = {}));
   		/**
   		 * Decodes a string with entities.
   		 *
@@ -7045,7 +7055,7 @@
   		 * @param options Decoding options.
   		 */
   		function decode(data, options) {
-  		    if (options === undefined) { options = EntityLevel.XML; }
+  		    if (options === void 0) { options = EntityLevel.XML; }
   		    var level = typeof options === "number" ? options : options.level;
   		    if (level === EntityLevel.HTML) {
   		        var mode = typeof options === "object" ? options.mode : undefined;
@@ -7053,7 +7063,7 @@
   		    }
   		    return (0, decode_js_1.decodeXML)(data);
   		}
-  		exports.decode = decode;
+  		exports$1.decode = decode;
   		/**
   		 * Decodes a string with entities. Does not allow missing trailing semicolons for entities.
   		 *
@@ -7063,12 +7073,12 @@
   		 */
   		function decodeStrict(data, options) {
   		    var _a;
-  		    if (options === undefined) { options = EntityLevel.XML; }
+  		    if (options === void 0) { options = EntityLevel.XML; }
   		    var opts = typeof options === "number" ? { level: options } : options;
-  		    (_a = opts.mode) !== null && _a !== undefined ? _a : (opts.mode = decode_js_1.DecodingMode.Strict);
+  		    (_a = opts.mode) !== null && _a !== void 0 ? _a : (opts.mode = decode_js_1.DecodingMode.Strict);
   		    return decode(data, opts);
   		}
-  		exports.decodeStrict = decodeStrict;
+  		exports$1.decodeStrict = decodeStrict;
   		/**
   		 * Encodes a string with entities.
   		 *
@@ -7076,7 +7086,7 @@
   		 * @param options Encoding options.
   		 */
   		function encode(data, options) {
-  		    if (options === undefined) { options = EntityLevel.XML; }
+  		    if (options === void 0) { options = EntityLevel.XML; }
   		    var opts = typeof options === "number" ? { level: options } : options;
   		    // Mode `UTF8` just escapes XML entities
   		    if (opts.mode === EncodingMode.UTF8)
@@ -7094,32 +7104,32 @@
   		    // ASCII and Extensive are equivalent
   		    return (0, escape_js_1.encodeXML)(data);
   		}
-  		exports.encode = encode;
+  		exports$1.encode = encode;
   		var escape_js_2 = /*@__PURE__*/ require_escape();
-  		Object.defineProperty(exports, "encodeXML", { enumerable: true, get: function () { return escape_js_2.encodeXML; } });
-  		Object.defineProperty(exports, "escape", { enumerable: true, get: function () { return escape_js_2.escape; } });
-  		Object.defineProperty(exports, "escapeUTF8", { enumerable: true, get: function () { return escape_js_2.escapeUTF8; } });
-  		Object.defineProperty(exports, "escapeAttribute", { enumerable: true, get: function () { return escape_js_2.escapeAttribute; } });
-  		Object.defineProperty(exports, "escapeText", { enumerable: true, get: function () { return escape_js_2.escapeText; } });
+  		Object.defineProperty(exports$1, "encodeXML", { enumerable: true, get: function () { return escape_js_2.encodeXML; } });
+  		Object.defineProperty(exports$1, "escape", { enumerable: true, get: function () { return escape_js_2.escape; } });
+  		Object.defineProperty(exports$1, "escapeUTF8", { enumerable: true, get: function () { return escape_js_2.escapeUTF8; } });
+  		Object.defineProperty(exports$1, "escapeAttribute", { enumerable: true, get: function () { return escape_js_2.escapeAttribute; } });
+  		Object.defineProperty(exports$1, "escapeText", { enumerable: true, get: function () { return escape_js_2.escapeText; } });
   		var encode_js_2 = /*@__PURE__*/ requireEncode();
-  		Object.defineProperty(exports, "encodeHTML", { enumerable: true, get: function () { return encode_js_2.encodeHTML; } });
-  		Object.defineProperty(exports, "encodeNonAsciiHTML", { enumerable: true, get: function () { return encode_js_2.encodeNonAsciiHTML; } });
+  		Object.defineProperty(exports$1, "encodeHTML", { enumerable: true, get: function () { return encode_js_2.encodeHTML; } });
+  		Object.defineProperty(exports$1, "encodeNonAsciiHTML", { enumerable: true, get: function () { return encode_js_2.encodeNonAsciiHTML; } });
   		// Legacy aliases (deprecated)
-  		Object.defineProperty(exports, "encodeHTML4", { enumerable: true, get: function () { return encode_js_2.encodeHTML; } });
-  		Object.defineProperty(exports, "encodeHTML5", { enumerable: true, get: function () { return encode_js_2.encodeHTML; } });
+  		Object.defineProperty(exports$1, "encodeHTML4", { enumerable: true, get: function () { return encode_js_2.encodeHTML; } });
+  		Object.defineProperty(exports$1, "encodeHTML5", { enumerable: true, get: function () { return encode_js_2.encodeHTML; } });
   		var decode_js_2 = /*@__PURE__*/ requireDecode();
-  		Object.defineProperty(exports, "EntityDecoder", { enumerable: true, get: function () { return decode_js_2.EntityDecoder; } });
-  		Object.defineProperty(exports, "DecodingMode", { enumerable: true, get: function () { return decode_js_2.DecodingMode; } });
-  		Object.defineProperty(exports, "decodeXML", { enumerable: true, get: function () { return decode_js_2.decodeXML; } });
-  		Object.defineProperty(exports, "decodeHTML", { enumerable: true, get: function () { return decode_js_2.decodeHTML; } });
-  		Object.defineProperty(exports, "decodeHTMLStrict", { enumerable: true, get: function () { return decode_js_2.decodeHTMLStrict; } });
-  		Object.defineProperty(exports, "decodeHTMLAttribute", { enumerable: true, get: function () { return decode_js_2.decodeHTMLAttribute; } });
+  		Object.defineProperty(exports$1, "EntityDecoder", { enumerable: true, get: function () { return decode_js_2.EntityDecoder; } });
+  		Object.defineProperty(exports$1, "DecodingMode", { enumerable: true, get: function () { return decode_js_2.DecodingMode; } });
+  		Object.defineProperty(exports$1, "decodeXML", { enumerable: true, get: function () { return decode_js_2.decodeXML; } });
+  		Object.defineProperty(exports$1, "decodeHTML", { enumerable: true, get: function () { return decode_js_2.decodeHTML; } });
+  		Object.defineProperty(exports$1, "decodeHTMLStrict", { enumerable: true, get: function () { return decode_js_2.decodeHTMLStrict; } });
+  		Object.defineProperty(exports$1, "decodeHTMLAttribute", { enumerable: true, get: function () { return decode_js_2.decodeHTMLAttribute; } });
   		// Legacy aliases (deprecated)
-  		Object.defineProperty(exports, "decodeHTML4", { enumerable: true, get: function () { return decode_js_2.decodeHTML; } });
-  		Object.defineProperty(exports, "decodeHTML5", { enumerable: true, get: function () { return decode_js_2.decodeHTML; } });
-  		Object.defineProperty(exports, "decodeHTML4Strict", { enumerable: true, get: function () { return decode_js_2.decodeHTMLStrict; } });
-  		Object.defineProperty(exports, "decodeHTML5Strict", { enumerable: true, get: function () { return decode_js_2.decodeHTMLStrict; } });
-  		Object.defineProperty(exports, "decodeXMLStrict", { enumerable: true, get: function () { return decode_js_2.decodeXML; } });
+  		Object.defineProperty(exports$1, "decodeHTML4", { enumerable: true, get: function () { return decode_js_2.decodeHTML; } });
+  		Object.defineProperty(exports$1, "decodeHTML5", { enumerable: true, get: function () { return decode_js_2.decodeHTML; } });
+  		Object.defineProperty(exports$1, "decodeHTML4Strict", { enumerable: true, get: function () { return decode_js_2.decodeHTMLStrict; } });
+  		Object.defineProperty(exports$1, "decodeHTML5Strict", { enumerable: true, get: function () { return decode_js_2.decodeHTMLStrict; } });
+  		Object.defineProperty(exports$1, "decodeXMLStrict", { enumerable: true, get: function () { return decode_js_2.decodeXML; } });
   		
   	} (lib));
   	return lib;
@@ -7133,7 +7143,7 @@
   	if (hasRequiredForeignNames) return foreignNames;
   	hasRequiredForeignNames = 1;
   	Object.defineProperty(foreignNames, "__esModule", { value: true });
-  	foreignNames.attributeNames = foreignNames.elementNames = undefined;
+  	foreignNames.attributeNames = foreignNames.elementNames = void 0;
   	foreignNames.elementNames = new Map([
   	    "altGlyph",
   	    "altGlyphDef",
@@ -7242,7 +7252,7 @@
   function requireLib$2 () {
   	if (hasRequiredLib$2) return lib$1;
   	hasRequiredLib$2 = 1;
-  	var __assign = (lib$1.__assign) || function () {
+  	var __assign = (lib$1 && lib$1.__assign) || function () {
   	    __assign = Object.assign || function(t) {
   	        for (var s, i = 1, n = arguments.length; i < n; i++) {
   	            s = arguments[i];
@@ -7253,7 +7263,7 @@
   	    };
   	    return __assign.apply(this, arguments);
   	};
-  	var __createBinding = (lib$1.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+  	var __createBinding = (lib$1 && lib$1.__createBinding) || (Object.create ? (function(o, m, k, k2) {
   	    if (k2 === undefined) k2 = k;
   	    var desc = Object.getOwnPropertyDescriptor(m, k);
   	    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -7264,12 +7274,12 @@
   	    if (k2 === undefined) k2 = k;
   	    o[k2] = m[k];
   	}));
-  	var __setModuleDefault = (lib$1.__setModuleDefault) || (Object.create ? (function(o, v) {
+  	var __setModuleDefault = (lib$1 && lib$1.__setModuleDefault) || (Object.create ? (function(o, v) {
   	    Object.defineProperty(o, "default", { enumerable: true, value: v });
   	}) : function(o, v) {
   	    o["default"] = v;
   	});
-  	var __importStar = (lib$1.__importStar) || function (mod) {
+  	var __importStar = (lib$1 && lib$1.__importStar) || function (mod) {
   	    if (mod && mod.__esModule) return mod;
   	    var result = {};
   	    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
@@ -7277,7 +7287,7 @@
   	    return result;
   	};
   	Object.defineProperty(lib$1, "__esModule", { value: true });
-  	lib$1.render = undefined;
+  	lib$1.render = void 0;
   	/*
   	 * Module dependencies
   	 */
@@ -7310,7 +7320,7 @@
   	    var _a;
   	    if (!attributes)
   	        return;
-  	    var encode = ((_a = opts.encodeEntities) !== null && _a !== undefined ? _a : opts.decodeEntities) === false
+  	    var encode = ((_a = opts.encodeEntities) !== null && _a !== void 0 ? _a : opts.decodeEntities) === false
   	        ? replaceQuotes
   	        : opts.xmlMode || opts.encodeEntities !== "utf8"
   	            ? entities_1.encodeXML
@@ -7318,10 +7328,10 @@
   	    return Object.keys(attributes)
   	        .map(function (key) {
   	        var _a, _b;
-  	        var value = (_a = attributes[key]) !== null && _a !== undefined ? _a : "";
+  	        var value = (_a = attributes[key]) !== null && _a !== void 0 ? _a : "";
   	        if (opts.xmlMode === "foreign") {
   	            /* Fix up mixed-case attribute names */
-  	            key = (_b = foreignNames_js_1.attributeNames.get(key)) !== null && _b !== undefined ? _b : key;
+  	            key = (_b = foreignNames_js_1.attributeNames.get(key)) !== null && _b !== void 0 ? _b : key;
   	        }
   	        if (!opts.emptyAttrs && !opts.xmlMode && value === "") {
   	            return key;
@@ -7363,7 +7373,7 @@
   	 * @param options Changes serialization behavior
   	 */
   	function render(node, options) {
-  	    if (options === undefined) { options = {}; }
+  	    if (options === void 0) { options = {}; }
   	    var nodes = "length" in node ? node : [node];
   	    var output = "";
   	    for (var i = 0; i < nodes.length; i++) {
@@ -7410,7 +7420,7 @@
   	    // Handle SVG / MathML in HTML
   	    if (opts.xmlMode === "foreign") {
   	        /* Fix up mixed-case element names */
-  	        elem.name = (_a = foreignNames_js_1.elementNames.get(elem.name)) !== null && _a !== undefined ? _a : elem.name;
+  	        elem.name = (_a = foreignNames_js_1.elementNames.get(elem.name)) !== null && _a !== void 0 ? _a : elem.name;
   	        /* Exit foreign mode at integration points */
   	        if (elem.parent &&
   	            foreignModeIntegrationPoints.has(elem.parent.name)) {
@@ -7453,7 +7463,7 @@
   	    var _a;
   	    var data = elem.data || "";
   	    // If entities weren't decoded, no need to encode them back
-  	    if (((_a = opts.encodeEntities) !== null && _a !== undefined ? _a : opts.decodeEntities) !== false &&
+  	    if (((_a = opts.encodeEntities) !== null && _a !== void 0 ? _a : opts.decodeEntities) !== false &&
   	        !(!opts.xmlMode &&
   	            elem.parent &&
   	            unencodedElements.has(elem.parent.name))) {
@@ -7478,7 +7488,7 @@
   function requireStringify$1 () {
   	if (hasRequiredStringify$1) return stringify$1;
   	hasRequiredStringify$1 = 1;
-  	var __importDefault = (stringify$1.__importDefault) || function (mod) {
+  	var __importDefault = (stringify$1 && stringify$1.__importDefault) || function (mod) {
   	    return (mod && mod.__esModule) ? mod : { "default": mod };
   	};
   	Object.defineProperty(stringify$1, "__esModule", { value: true });
@@ -7646,7 +7656,7 @@
   	 */
   	function getAttributeValue(elem, name) {
   	    var _a;
-  	    return (_a = elem.attribs) === null || _a === undefined ? undefined : _a[name];
+  	    return (_a = elem.attribs) === null || _a === void 0 ? void 0 : _a[name];
   	}
   	/**
   	 * Checks whether an element has an attribute.
@@ -7882,8 +7892,8 @@
   	 * @returns All nodes passing `test`.
   	 */
   	function filter(test, node, recurse, limit) {
-  	    if (recurse === undefined) { recurse = true; }
-  	    if (limit === undefined) { limit = Infinity; }
+  	    if (recurse === void 0) { recurse = true; }
+  	    if (limit === void 0) { limit = Infinity; }
   	    return find(test, Array.isArray(node) ? node : [node], recurse, limit);
   	}
   	/**
@@ -7953,7 +7963,7 @@
   	 * @returns The first node that passes `test`.
   	 */
   	function findOne(test, nodes, recurse) {
-  	    if (recurse === undefined) { recurse = true; }
+  	    if (recurse === void 0) { recurse = true; }
   	    var searchedNodes = Array.isArray(nodes) ? nodes : [nodes];
   	    for (var i = 0; i < searchedNodes.length; i++) {
   	        var node = searchedNodes[i];
@@ -8129,7 +8139,7 @@
   	 * @returns All nodes that match `options`.
   	 */
   	function getElements(options, nodes, recurse, limit) {
-  	    if (limit === undefined) { limit = Infinity; }
+  	    if (limit === void 0) { limit = Infinity; }
   	    var test = compileTest(options);
   	    return test ? (0, querying_js_1.filter)(test, nodes, recurse, limit) : [];
   	}
@@ -8143,7 +8153,7 @@
   	 * @returns The node with the supplied ID.
   	 */
   	function getElementById(id, nodes, recurse) {
-  	    if (recurse === undefined) { recurse = true; }
+  	    if (recurse === void 0) { recurse = true; }
   	    if (!Array.isArray(nodes))
   	        nodes = [nodes];
   	    return (0, querying_js_1.findOne)(getAttribCheck("id", id), nodes, recurse);
@@ -8159,8 +8169,8 @@
   	 * @returns All nodes with the supplied `tagName`.
   	 */
   	function getElementsByTagName(tagName, nodes, recurse, limit) {
-  	    if (recurse === undefined) { recurse = true; }
-  	    if (limit === undefined) { limit = Infinity; }
+  	    if (recurse === void 0) { recurse = true; }
+  	    if (limit === void 0) { limit = Infinity; }
   	    return (0, querying_js_1.filter)(Checks["tag_name"](tagName), nodes, recurse, limit);
   	}
   	/**
@@ -8174,8 +8184,8 @@
   	 * @returns All nodes with the supplied `className`.
   	 */
   	function getElementsByClassName(className, nodes, recurse, limit) {
-  	    if (recurse === undefined) { recurse = true; }
-  	    if (limit === undefined) { limit = Infinity; }
+  	    if (recurse === void 0) { recurse = true; }
+  	    if (limit === void 0) { limit = Infinity; }
   	    return (0, querying_js_1.filter)(getAttribCheck("class", className), nodes, recurse, limit);
   	}
   	/**
@@ -8189,8 +8199,8 @@
   	 * @returns All nodes with the supplied `type`.
   	 */
   	function getElementsByTagType(type, nodes, recurse, limit) {
-  	    if (recurse === undefined) { recurse = true; }
-  	    if (limit === undefined) { limit = Infinity; }
+  	    if (recurse === void 0) { recurse = true; }
+  	    if (limit === void 0) { limit = Infinity; }
   	    return (0, querying_js_1.filter)(Checks["tag_type"](type), nodes, recurse, limit);
   	}
   	
@@ -8205,7 +8215,7 @@
   	if (hasRequiredHelpers) return helpers;
   	hasRequiredHelpers = 1;
   	Object.defineProperty(helpers, "__esModule", { value: true });
-  	helpers.DocumentPosition = undefined;
+  	helpers.DocumentPosition = void 0;
   	helpers.removeSubsets = removeSubsets;
   	helpers.compareDocumentPosition = compareDocumentPosition;
   	helpers.uniqueSort = uniqueSort;
@@ -8391,7 +8401,7 @@
   	            var entry = { media: getMediaElements(children) };
   	            addConditionally(entry, "id", "id", children);
   	            addConditionally(entry, "title", "title", children);
-  	            var href = (_a = getOneElement("link", children)) === null || _a === undefined ? undefined : _a.attribs["href"];
+  	            var href = (_a = getOneElement("link", children)) === null || _a === void 0 ? void 0 : _a.attribs["href"];
   	            if (href) {
   	                entry.link = href;
   	            }
@@ -8408,7 +8418,7 @@
   	    };
   	    addConditionally(feed, "id", "id", childs);
   	    addConditionally(feed, "title", "title", childs);
-  	    var href = (_a = getOneElement("link", childs)) === null || _a === undefined ? undefined : _a.attribs["href"];
+  	    var href = (_a = getOneElement("link", childs)) === null || _a === void 0 ? void 0 : _a.attribs["href"];
   	    if (href) {
   	        feed.link = href;
   	    }
@@ -8428,7 +8438,7 @@
   	 */
   	function getRssFeed(feedRoot) {
   	    var _a, _b;
-  	    var childs = (_b = (_a = getOneElement("channel", feedRoot.children)) === null || _a === undefined ? undefined : _a.children) !== null && _b !== undefined ? _b : [];
+  	    var childs = (_b = (_a = getOneElement("channel", feedRoot.children)) === null || _a === void 0 ? void 0 : _a.children) !== null && _b !== void 0 ? _b : [];
   	    var feed = {
   	        type: feedRoot.name.substr(0, 3),
   	        id: "",
@@ -8516,7 +8526,7 @@
   	 * @returns The text content of the element.
   	 */
   	function fetch(tagName, where, recurse) {
-  	    if (recurse === undefined) { recurse = false; }
+  	    if (recurse === void 0) { recurse = false; }
   	    return (0, stringify_js_1.textContent)((0, legacy_js_1.getElementsByTagName)(tagName, where, recurse, 1)).trim();
   	}
   	/**
@@ -8529,7 +8539,7 @@
   	 * @param recurse Whether to recurse into child nodes.
   	 */
   	function addConditionally(obj, prop, tagName, where, recurse) {
-  	    if (recurse === undefined) { recurse = false; }
+  	    if (recurse === void 0) { recurse = false; }
   	    var val = fetch(tagName, where, recurse);
   	    if (val)
   	        obj[prop] = val;
@@ -8552,8 +8562,8 @@
   function requireLib$1 () {
   	if (hasRequiredLib$1) return lib$2;
   	hasRequiredLib$1 = 1;
-  	(function (exports) {
-  		var __createBinding = (lib$2.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+  	(function (exports$1) {
+  		var __createBinding = (lib$2 && lib$2.__createBinding) || (Object.create ? (function(o, m, k, k2) {
   		    if (k2 === undefined) k2 = k;
   		    var desc = Object.getOwnPropertyDescriptor(m, k);
   		    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -8564,26 +8574,26 @@
   		    if (k2 === undefined) k2 = k;
   		    o[k2] = m[k];
   		}));
-  		var __exportStar = (lib$2.__exportStar) || function(m, exports) {
-  		    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+  		var __exportStar = (lib$2 && lib$2.__exportStar) || function(m, exports$1) {
+  		    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports$1, p)) __createBinding(exports$1, m, p);
   		};
-  		Object.defineProperty(exports, "__esModule", { value: true });
-  		exports.hasChildren = exports.isDocument = exports.isComment = exports.isText = exports.isCDATA = exports.isTag = undefined;
-  		__exportStar(/*@__PURE__*/ requireStringify$1(), exports);
-  		__exportStar(/*@__PURE__*/ requireTraversal(), exports);
-  		__exportStar(/*@__PURE__*/ requireManipulation(), exports);
-  		__exportStar(/*@__PURE__*/ requireQuerying(), exports);
-  		__exportStar(/*@__PURE__*/ requireLegacy(), exports);
-  		__exportStar(/*@__PURE__*/ requireHelpers(), exports);
-  		__exportStar(/*@__PURE__*/ requireFeeds(), exports);
+  		Object.defineProperty(exports$1, "__esModule", { value: true });
+  		exports$1.hasChildren = exports$1.isDocument = exports$1.isComment = exports$1.isText = exports$1.isCDATA = exports$1.isTag = void 0;
+  		__exportStar(/*@__PURE__*/ requireStringify$1(), exports$1);
+  		__exportStar(/*@__PURE__*/ requireTraversal(), exports$1);
+  		__exportStar(/*@__PURE__*/ requireManipulation(), exports$1);
+  		__exportStar(/*@__PURE__*/ requireQuerying(), exports$1);
+  		__exportStar(/*@__PURE__*/ requireLegacy(), exports$1);
+  		__exportStar(/*@__PURE__*/ requireHelpers(), exports$1);
+  		__exportStar(/*@__PURE__*/ requireFeeds(), exports$1);
   		/** @deprecated Use these methods from `domhandler` directly. */
   		var domhandler_1 = /*@__PURE__*/ requireLib$4();
-  		Object.defineProperty(exports, "isTag", { enumerable: true, get: function () { return domhandler_1.isTag; } });
-  		Object.defineProperty(exports, "isCDATA", { enumerable: true, get: function () { return domhandler_1.isCDATA; } });
-  		Object.defineProperty(exports, "isText", { enumerable: true, get: function () { return domhandler_1.isText; } });
-  		Object.defineProperty(exports, "isComment", { enumerable: true, get: function () { return domhandler_1.isComment; } });
-  		Object.defineProperty(exports, "isDocument", { enumerable: true, get: function () { return domhandler_1.isDocument; } });
-  		Object.defineProperty(exports, "hasChildren", { enumerable: true, get: function () { return domhandler_1.hasChildren; } });
+  		Object.defineProperty(exports$1, "isTag", { enumerable: true, get: function () { return domhandler_1.isTag; } });
+  		Object.defineProperty(exports$1, "isCDATA", { enumerable: true, get: function () { return domhandler_1.isCDATA; } });
+  		Object.defineProperty(exports$1, "isText", { enumerable: true, get: function () { return domhandler_1.isText; } });
+  		Object.defineProperty(exports$1, "isComment", { enumerable: true, get: function () { return domhandler_1.isComment; } });
+  		Object.defineProperty(exports$1, "isDocument", { enumerable: true, get: function () { return domhandler_1.isDocument; } });
+  		Object.defineProperty(exports$1, "hasChildren", { enumerable: true, get: function () { return domhandler_1.hasChildren; } });
   		
   	} (lib$2));
   	return lib$2;
@@ -8594,8 +8604,8 @@
   function requireLib () {
   	if (hasRequiredLib) return lib$5;
   	hasRequiredLib = 1;
-  	(function (exports) {
-  		var __createBinding = (lib$5.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+  	(function (exports$1) {
+  		var __createBinding = (lib$5 && lib$5.__createBinding) || (Object.create ? (function(o, m, k, k2) {
   		    if (k2 === undefined) k2 = k;
   		    var desc = Object.getOwnPropertyDescriptor(m, k);
   		    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -8606,31 +8616,31 @@
   		    if (k2 === undefined) k2 = k;
   		    o[k2] = m[k];
   		}));
-  		var __setModuleDefault = (lib$5.__setModuleDefault) || (Object.create ? (function(o, v) {
+  		var __setModuleDefault = (lib$5 && lib$5.__setModuleDefault) || (Object.create ? (function(o, v) {
   		    Object.defineProperty(o, "default", { enumerable: true, value: v });
   		}) : function(o, v) {
   		    o["default"] = v;
   		});
-  		var __importStar = (lib$5.__importStar) || function (mod) {
+  		var __importStar = (lib$5 && lib$5.__importStar) || function (mod) {
   		    if (mod && mod.__esModule) return mod;
   		    var result = {};
   		    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
   		    __setModuleDefault(result, mod);
   		    return result;
   		};
-  		var __importDefault = (lib$5.__importDefault) || function (mod) {
+  		var __importDefault = (lib$5 && lib$5.__importDefault) || function (mod) {
   		    return (mod && mod.__esModule) ? mod : { "default": mod };
   		};
-  		Object.defineProperty(exports, "__esModule", { value: true });
-  		exports.DomUtils = exports.parseFeed = exports.getFeed = exports.ElementType = exports.Tokenizer = exports.createDomStream = exports.parseDOM = exports.parseDocument = exports.DefaultHandler = exports.DomHandler = exports.Parser = undefined;
+  		Object.defineProperty(exports$1, "__esModule", { value: true });
+  		exports$1.DomUtils = exports$1.parseFeed = exports$1.getFeed = exports$1.ElementType = exports$1.Tokenizer = exports$1.createDomStream = exports$1.parseDOM = exports$1.parseDocument = exports$1.DefaultHandler = exports$1.DomHandler = exports$1.Parser = void 0;
   		var Parser_js_1 = /*@__PURE__*/ requireParser$1();
   		var Parser_js_2 = /*@__PURE__*/ requireParser$1();
-  		Object.defineProperty(exports, "Parser", { enumerable: true, get: function () { return Parser_js_2.Parser; } });
+  		Object.defineProperty(exports$1, "Parser", { enumerable: true, get: function () { return Parser_js_2.Parser; } });
   		var domhandler_1 = /*@__PURE__*/ requireLib$4();
   		var domhandler_2 = /*@__PURE__*/ requireLib$4();
-  		Object.defineProperty(exports, "DomHandler", { enumerable: true, get: function () { return domhandler_2.DomHandler; } });
+  		Object.defineProperty(exports$1, "DomHandler", { enumerable: true, get: function () { return domhandler_2.DomHandler; } });
   		// Old name for DomHandler
-  		Object.defineProperty(exports, "DefaultHandler", { enumerable: true, get: function () { return domhandler_2.DomHandler; } });
+  		Object.defineProperty(exports$1, "DefaultHandler", { enumerable: true, get: function () { return domhandler_2.DomHandler; } });
   		// Helper methods
   		/**
   		 * Parses the data, returns the resulting document.
@@ -8643,7 +8653,7 @@
   		    new Parser_js_1.Parser(handler, options).end(data);
   		    return handler.root;
   		}
-  		exports.parseDocument = parseDocument;
+  		exports$1.parseDocument = parseDocument;
   		/**
   		 * Parses data, returns an array of the root nodes.
   		 *
@@ -8657,7 +8667,7 @@
   		function parseDOM(data, options) {
   		    return parseDocument(data, options).children;
   		}
-  		exports.parseDOM = parseDOM;
+  		exports$1.parseDOM = parseDOM;
   		/**
   		 * Creates a parser instance, with an attached DOM handler.
   		 *
@@ -8669,17 +8679,17 @@
   		    var handler = new domhandler_1.DomHandler(callback, options, elementCallback);
   		    return new Parser_js_1.Parser(handler, options);
   		}
-  		exports.createDomStream = createDomStream;
+  		exports$1.createDomStream = createDomStream;
   		var Tokenizer_js_1 = /*@__PURE__*/ requireTokenizer();
-  		Object.defineProperty(exports, "Tokenizer", { enumerable: true, get: function () { return __importDefault(Tokenizer_js_1).default; } });
+  		Object.defineProperty(exports$1, "Tokenizer", { enumerable: true, get: function () { return __importDefault(Tokenizer_js_1).default; } });
   		/*
   		 * All of the following exports exist for backwards-compatibility.
   		 * They should probably be removed eventually.
   		 */
-  		exports.ElementType = __importStar(/*@__PURE__*/ requireLib$5());
+  		exports$1.ElementType = __importStar(/*@__PURE__*/ requireLib$5());
   		var domutils_1 = /*@__PURE__*/ requireLib$1();
   		var domutils_2 = /*@__PURE__*/ requireLib$1();
-  		Object.defineProperty(exports, "getFeed", { enumerable: true, get: function () { return domutils_2.getFeed; } });
+  		Object.defineProperty(exports$1, "getFeed", { enumerable: true, get: function () { return domutils_2.getFeed; } });
   		var parseFeedDefaultOptions = { xmlMode: true };
   		/**
   		 * Parse a feed.
@@ -8688,11 +8698,11 @@
   		 * @param options Optionally, options for parsing. When using this, you should set `xmlMode` to `true`.
   		 */
   		function parseFeed(feed, options) {
-  		    if (options === undefined) { options = parseFeedDefaultOptions; }
+  		    if (options === void 0) { options = parseFeedDefaultOptions; }
   		    return (0, domutils_1.getFeed)(parseDOM(feed, options));
   		}
-  		exports.parseFeed = parseFeed;
-  		exports.DomUtils = __importStar(/*@__PURE__*/ requireLib$1());
+  		exports$1.parseFeed = parseFeed;
+  		exports$1.DomUtils = __importStar(/*@__PURE__*/ requireLib$1());
   		
   	} (lib$5));
   	return lib$5;
@@ -10069,11 +10079,8 @@
 
   	function sourceOffset(inputCSS, position) {
   	  // Not all custom syntaxes support `offset` in `source.start` and `source.end`
-  	  if (
-  	    position &&
-  	    typeof position.offset !== 'undefined'
-  	  ) {
-  	    return position.offset;
+  	  if (position && typeof position.offset !== 'undefined') {
+  	    return position.offset
   	  }
 
   	  let column = 1;
@@ -10098,6 +10105,10 @@
   	}
 
   	class Node {
+  	  get proxyOf() {
+  	    return this
+  	  }
+
   	  constructor(defaults = {}) {
   	    this.raws = {};
   	    this[isClean] = false;
@@ -10239,14 +10250,15 @@
   	    return this.parent.nodes[index + 1]
   	  }
 
-  	  positionBy(opts) {
+  	  positionBy(opts = {}) {
   	    let pos = this.source.start;
   	    if (opts.index) {
   	      pos = this.positionInside(opts.index);
   	    } else if (opts.word) {
-  	      let inputString = ('document' in this.source.input)
-  	        ? this.source.input.document
-  	        : this.source.input.css;
+  	      let inputString =
+  	        'document' in this.source.input
+  	          ? this.source.input.document
+  	          : this.source.input.css;
   	      let stringRepresentation = inputString.slice(
   	        sourceOffset(inputString, this.source.start),
   	        sourceOffset(inputString, this.source.end)
@@ -10260,9 +10272,10 @@
   	  positionInside(index) {
   	    let column = this.source.start.column;
   	    let line = this.source.start.line;
-  	    let inputString = ('document' in this.source.input)
-  	      ? this.source.input.document
-  	      : this.source.input.css;
+  	    let inputString =
+  	      'document' in this.source.input
+  	        ? this.source.input.document
+  	        : this.source.input.css;
   	    let offset = sourceOffset(inputString, this.source.start);
   	    let end = offset + index;
 
@@ -10275,7 +10288,7 @@
   	      }
   	    }
 
-  	    return { column, line }
+  	    return { column, line, offset: end }
   	  }
 
   	  prev() {
@@ -10284,25 +10297,36 @@
   	    return this.parent.nodes[index - 1]
   	  }
 
-  	  rangeBy(opts) {
+  	  rangeBy(opts = {}) {
+  	    let inputString =
+  	      'document' in this.source.input
+  	        ? this.source.input.document
+  	        : this.source.input.css;
   	    let start = {
   	      column: this.source.start.column,
-  	      line: this.source.start.line
+  	      line: this.source.start.line,
+  	      offset: sourceOffset(inputString, this.source.start)
   	    };
   	    let end = this.source.end
   	      ? {
   	          column: this.source.end.column + 1,
-  	          line: this.source.end.line
+  	          line: this.source.end.line,
+  	          offset:
+  	            typeof this.source.end.offset === 'number'
+  	              ? // `source.end.offset` is exclusive, so we don't need to add 1
+  	                this.source.end.offset
+  	              : // Since line/column in this.source.end is inclusive,
+  	                // the `sourceOffset(... , this.source.end)` returns an inclusive offset.
+  	                // So, we add 1 to convert it to exclusive.
+  	                sourceOffset(inputString, this.source.end) + 1
   	        }
   	      : {
   	          column: start.column + 1,
-  	          line: start.line
+  	          line: start.line,
+  	          offset: start.offset + 1
   	        };
 
   	    if (opts.word) {
-  	      let inputString = ('document' in this.source.input)
-  	        ? this.source.input.document
-  	        : this.source.input.css;
   	      let stringRepresentation = inputString.slice(
   	        sourceOffset(inputString, this.source.start),
   	        sourceOffset(inputString, this.source.end)
@@ -10310,15 +10334,14 @@
   	      let index = stringRepresentation.indexOf(opts.word);
   	      if (index !== -1) {
   	        start = this.positionInside(index);
-  	        end = this.positionInside(
-  	          index + opts.word.length,
-  	        );
+  	        end = this.positionInside(index + opts.word.length);
   	      }
   	    } else {
   	      if (opts.start) {
   	        start = {
   	          column: opts.start.column,
-  	          line: opts.start.line
+  	          line: opts.start.line,
+  	          offset: sourceOffset(inputString, opts.start)
   	        };
   	      } else if (opts.index) {
   	        start = this.positionInside(opts.index);
@@ -10327,7 +10350,8 @@
   	      if (opts.end) {
   	        end = {
   	          column: opts.end.column,
-  	          line: opts.end.line
+  	          line: opts.end.line,
+  	          offset: sourceOffset(inputString, opts.end)
   	        };
   	      } else if (typeof opts.endIndex === 'number') {
   	        end = this.positionInside(opts.endIndex);
@@ -10340,7 +10364,11 @@
   	      end.line < start.line ||
   	      (end.line === start.line && end.column <= start.column)
   	    ) {
-  	      end = { column: start.column + 1, line: start.line };
+  	      end = {
+  	        column: start.column + 1,
+  	        line: start.line,
+  	        offset: start.offset + 1
+  	      };
   	    }
 
   	    return { end, start }
@@ -10415,6 +10443,7 @@
   	      } else if (typeof value === 'object' && value.toJSON) {
   	        fixed[name] = value.toJSON(null, inputs);
   	      } else if (name === 'source') {
+  	        if (value == null) continue
   	        let inputId = inputs.get(value.input);
   	        if (inputId == null) {
   	          inputId = inputsNextIndex;
@@ -10454,14 +10483,10 @@
   	    return result
   	  }
 
-  	  warn(result, text, opts) {
+  	  warn(result, text, opts = {}) {
   	    let data = { node: this };
   	    for (let i in opts) data[i] = opts[i];
   	    return result.warn(text, data)
-  	  }
-
-  	  get proxyOf() {
-  	    return this
   	  }
   	}
 
@@ -10501,6 +10526,10 @@
   	let Node = requireNode();
 
   	class Declaration extends Node {
+  	  get variable() {
+  	    return this.prop.startsWith('--') || this.prop[0] === '$'
+  	  }
+
   	  constructor(defaults) {
   	    if (
   	      defaults &&
@@ -10511,10 +10540,6 @@
   	    }
   	    super(defaults);
   	    this.type = 'decl';
-  	  }
-
-  	  get variable() {
-  	    return this.prop.startsWith('--') || this.prop[0] === '$'
   	  }
   	}
 
@@ -10555,6 +10580,16 @@
   	}
 
   	class Container extends Node {
+  	  get first() {
+  	    if (!this.proxyOf.nodes) return undefined
+  	    return this.proxyOf.nodes[0]
+  	  }
+
+  	  get last() {
+  	    if (!this.proxyOf.nodes) return undefined
+  	    return this.proxyOf.nodes[this.proxyOf.nodes.length - 1]
+  	  }
+
   	  append(...children) {
   	    for (let child of children) {
   	      let nodes = this.normalize(child, this.last);
@@ -10920,16 +10955,6 @@
   	        return callback(child, i)
   	      }
   	    })
-  	  }
-
-  	  get first() {
-  	    if (!this.proxyOf.nodes) return undefined
-  	    return this.proxyOf.nodes[0]
-  	  }
-
-  	  get last() {
-  	    if (!this.proxyOf.nodes) return undefined
-  	    return this.proxyOf.nodes[this.proxyOf.nodes.length - 1]
   	  }
   	}
 
@@ -14551,8 +14576,11 @@
   	let { SourceMapConsumer, SourceMapGenerator } = require$$1;
 
   	function fromBase64(str) {
-  	  {
+  	  if (Buffer) {
   	    return Buffer.from(str, 'base64').toString()
+  	  } else {
+  	    /* c8 ignore next 2 */
+  	    return window.atob(str)
   	  }
   	}
 
@@ -14704,12 +14732,31 @@
   	let PreviousMap = requirePreviousMap();
   	let terminalHighlight = require$$1;
 
-  	let fromOffsetCache = Symbol('fromOffsetCache');
+  	let lineToIndexCache = Symbol('lineToIndexCache');
 
   	let sourceMapAvailable = Boolean(SourceMapConsumer && SourceMapGenerator);
   	let pathAvailable = Boolean(resolve && isAbsolute);
 
+  	function getLineToIndex(input) {
+  	  if (input[lineToIndexCache]) return input[lineToIndexCache]
+  	  let lines = input.css.split('\n');
+  	  let lineToIndex = new Array(lines.length);
+  	  let prevIndex = 0;
+
+  	  for (let i = 0, l = lines.length; i < l; i++) {
+  	    lineToIndex[i] = prevIndex;
+  	    prevIndex += lines[i].length + 1;
+  	  }
+
+  	  input[lineToIndexCache] = lineToIndex;
+  	  return lineToIndex
+  	}
+
   	class Input {
+  	  get from() {
+  	    return this.file || this.id
+  	  }
+
   	  constructor(css, opts = {}) {
   	    if (
   	      css === null ||
@@ -14759,31 +14806,38 @@
   	  }
 
   	  error(message, line, column, opts = {}) {
-  	    let endColumn, endLine, result;
+  	    let endColumn, endLine, endOffset, offset, result;
 
   	    if (line && typeof line === 'object') {
   	      let start = line;
   	      let end = column;
   	      if (typeof start.offset === 'number') {
-  	        let pos = this.fromOffset(start.offset);
+  	        offset = start.offset;
+  	        let pos = this.fromOffset(offset);
   	        line = pos.line;
   	        column = pos.col;
   	      } else {
   	        line = start.line;
   	        column = start.column;
+  	        offset = this.fromLineAndColumn(line, column);
   	      }
   	      if (typeof end.offset === 'number') {
-  	        let pos = this.fromOffset(end.offset);
+  	        endOffset = end.offset;
+  	        let pos = this.fromOffset(endOffset);
   	        endLine = pos.line;
   	        endColumn = pos.col;
   	      } else {
   	        endLine = end.line;
   	        endColumn = end.column;
+  	        endOffset = this.fromLineAndColumn(end.line, end.column);
   	      }
   	    } else if (!column) {
-  	      let pos = this.fromOffset(line);
+  	      offset = line;
+  	      let pos = this.fromOffset(offset);
   	      line = pos.line;
   	      column = pos.col;
+  	    } else {
+  	      offset = this.fromLineAndColumn(line, column);
   	    }
 
   	    let origin = this.origin(line, column, endLine, endColumn);
@@ -14811,7 +14865,7 @@
   	      );
   	    }
 
-  	    result.input = { column, endColumn, endLine, line, source: this.css };
+  	    result.input = { column, endColumn, endLine, endOffset, line, offset, source: this.css };
   	    if (this.file) {
   	      if (pathToFileURL) {
   	        result.input.url = pathToFileURL(this.file).toString();
@@ -14822,23 +14876,15 @@
   	    return result
   	  }
 
+  	  fromLineAndColumn(line, column) {
+  	    let lineToIndex = getLineToIndex(this);
+  	    let index = lineToIndex[line - 1];
+  	    return index + column - 1
+  	  }
+
   	  fromOffset(offset) {
-  	    let lastLine, lineToIndex;
-  	    if (!this[fromOffsetCache]) {
-  	      let lines = this.css.split('\n');
-  	      lineToIndex = new Array(lines.length);
-  	      let prevIndex = 0;
-
-  	      for (let i = 0, l = lines.length; i < l; i++) {
-  	        lineToIndex[i] = prevIndex;
-  	        prevIndex += lines[i].length + 1;
-  	      }
-
-  	      this[fromOffsetCache] = lineToIndex;
-  	    } else {
-  	      lineToIndex = this[fromOffsetCache];
-  	    }
-  	    lastLine = lineToIndex[lineToIndex.length - 1];
+  	    let lineToIndex = getLineToIndex(this);
+  	    let lastLine = lineToIndex[lineToIndex.length - 1];
 
   	    let min = 0;
   	    if (offset >= lastLine) {
@@ -14931,10 +14977,6 @@
   	      }
   	    }
   	    return json
-  	  }
-
-  	  get from() {
-  	    return this.file || this.id
   	  }
   	}
 
@@ -15093,12 +15135,6 @@
   	let list = requireList();
 
   	class Rule extends Container {
-  	  constructor(defaults) {
-  	    super(defaults);
-  	    this.type = 'rule';
-  	    if (!this.nodes) this.nodes = [];
-  	  }
-
   	  get selectors() {
   	    return list.comma(this.selector)
   	  }
@@ -15107,6 +15143,12 @@
   	    let match = this.selector ? this.selector.match(/,\s*/) : null;
   	    let sep = match ? match[0] : ',' + this.raw('between', 'beforeOpen');
   	    this.selector = values.join(sep);
+  	  }
+
+  	  constructor(defaults) {
+  	    super(defaults);
+  	    this.type = 'rule';
+  	    if (!this.nodes) this.nodes = [];
   	  }
   	}
 
@@ -15261,7 +15303,15 @@
   	        }
   	      }
   	    } else if (this.css) {
-  	      this.css = this.css.replace(/\n*\/\*#[\S\s]*?\*\/$/gm, '');
+  	      let startIndex;
+  	      while ((startIndex = this.css.lastIndexOf('/*#')) !== -1) {
+  	        let endIndex = this.css.indexOf('*/', startIndex + 3);
+  	        if (endIndex === -1) break
+  	        while (startIndex > 0 && this.css[startIndex - 1] === '\n') {
+  	          startIndex--;
+  	        }
+  	        this.css = this.css.slice(0, startIndex) + this.css.slice(endIndex + 2);
+  	      }
   	    }
   	  }
 
@@ -15513,8 +15563,10 @@
   	  }
 
   	  toBase64(str) {
-  	    {
+  	    if (Buffer) {
   	      return Buffer.from(str).toString('base64')
+  	    } else {
+  	      return window.btoa(unescape(encodeURIComponent(str)))
   	    }
   	  }
 
@@ -16010,7 +16062,7 @@
   	    node.source.end.offset++;
 
   	    let text = token[1].slice(2, -2);
-  	    if (/^\s*$/.test(text)) {
+  	    if (!text.trim()) {
   	      node.text = '';
   	      node.raws.left = text;
   	      node.raws.right = '';
@@ -16181,6 +16233,8 @@
   	      if (prev && prev.type === 'rule' && !prev.raws.ownSemicolon) {
   	        prev.raws.ownSemicolon = this.spaces;
   	        this.spaces = '';
+  	        prev.source.end = this.getPosition(token[2]);
+  	        prev.source.end.offset += prev.raws.ownSemicolon.length;
   	      }
   	    }
   	  }
@@ -16425,7 +16479,7 @@
 
   	  unknownWord(tokens) {
   	    throw this.input.error(
-  	      'Unknown word',
+  	      'Unknown word ' + tokens[0][1],
   	      { offset: tokens[0][2] },
   	      { offset: tokens[0][2] + tokens[0][1].length }
   	    )
@@ -16549,12 +16603,16 @@
   	let Warning = requireWarning();
 
   	class Result {
+  	  get content() {
+  	    return this.css
+  	  }
+
   	  constructor(processor, root, opts) {
   	    this.processor = processor;
   	    this.messages = [];
   	    this.root = root;
   	    this.opts = opts;
-  	    this.css = undefined;
+  	    this.css = '';
   	    this.map = undefined;
   	  }
 
@@ -16577,10 +16635,6 @@
 
   	  warnings() {
   	    return this.messages.filter(i => i.type === 'warning')
-  	  }
-
-  	  get content() {
-  	    return this.css
   	  }
   	}
 
@@ -16723,6 +16777,38 @@
   	let postcss = {};
 
   	class LazyResult {
+  	  get content() {
+  	    return this.stringify().content
+  	  }
+
+  	  get css() {
+  	    return this.stringify().css
+  	  }
+
+  	  get map() {
+  	    return this.stringify().map
+  	  }
+
+  	  get messages() {
+  	    return this.sync().messages
+  	  }
+
+  	  get opts() {
+  	    return this.result.opts
+  	  }
+
+  	  get processor() {
+  	    return this.result.processor
+  	  }
+
+  	  get root() {
+  	    return this.sync().root
+  	  }
+
+  	  get [Symbol.toStringTag]() {
+  	    return 'LazyResult'
+  	  }
+
   	  constructor(processor, css, opts) {
   	    this.stringified = false;
   	    this.processed = false;
@@ -17123,38 +17209,6 @@
   	  warnings() {
   	    return this.sync().warnings()
   	  }
-
-  	  get content() {
-  	    return this.stringify().content
-  	  }
-
-  	  get css() {
-  	    return this.stringify().css
-  	  }
-
-  	  get map() {
-  	    return this.stringify().map
-  	  }
-
-  	  get messages() {
-  	    return this.sync().messages
-  	  }
-
-  	  get opts() {
-  	    return this.result.opts
-  	  }
-
-  	  get processor() {
-  	    return this.result.processor
-  	  }
-
-  	  get root() {
-  	    return this.sync().root
-  	  }
-
-  	  get [Symbol.toStringTag]() {
-  	    return 'LazyResult'
-  	  }
   	}
 
   	LazyResult.registerPostcss = dependant => {
@@ -17183,6 +17237,56 @@
   	let warnOnce = requireWarnOnce();
 
   	class NoWorkResult {
+  	  get content() {
+  	    return this.result.css
+  	  }
+
+  	  get css() {
+  	    return this.result.css
+  	  }
+
+  	  get map() {
+  	    return this.result.map
+  	  }
+
+  	  get messages() {
+  	    return []
+  	  }
+
+  	  get opts() {
+  	    return this.result.opts
+  	  }
+
+  	  get processor() {
+  	    return this.result.processor
+  	  }
+
+  	  get root() {
+  	    if (this._root) {
+  	      return this._root
+  	    }
+
+  	    let root;
+  	    let parser = parse;
+
+  	    try {
+  	      root = parser(this._css, this._opts);
+  	    } catch (error) {
+  	      this.error = error;
+  	    }
+
+  	    if (this.error) {
+  	      throw this.error
+  	    } else {
+  	      this._root = root;
+  	      return root
+  	    }
+  	  }
+
+  	  get [Symbol.toStringTag]() {
+  	    return 'NoWorkResult'
+  	  }
+
   	  constructor(processor, css, opts) {
   	    css = css.toString();
   	    this.stringified = false;
@@ -17191,10 +17295,9 @@
   	    this._css = css;
   	    this._opts = opts;
   	    this._map = undefined;
-  	    let root;
 
   	    let str = stringify;
-  	    this.result = new Result(this._processor, root, this._opts);
+  	    this.result = new Result(this._processor, undefined, this._opts);
   	    this.result.css = css;
 
   	    let self = this;
@@ -17204,7 +17307,7 @@
   	      }
   	    });
 
-  	    let map = new MapGenerator(str, root, this._opts, css);
+  	    let map = new MapGenerator(str, undefined, this._opts, css);
   	    if (map.isMap()) {
   	      let [generatedCSS, generatedMap] = map.generate();
   	      if (generatedCSS) {
@@ -17258,56 +17361,6 @@
   	  warnings() {
   	    return []
   	  }
-
-  	  get content() {
-  	    return this.result.css
-  	  }
-
-  	  get css() {
-  	    return this.result.css
-  	  }
-
-  	  get map() {
-  	    return this.result.map
-  	  }
-
-  	  get messages() {
-  	    return []
-  	  }
-
-  	  get opts() {
-  	    return this.result.opts
-  	  }
-
-  	  get processor() {
-  	    return this.result.processor
-  	  }
-
-  	  get root() {
-  	    if (this._root) {
-  	      return this._root
-  	    }
-
-  	    let root;
-  	    let parser = parse;
-
-  	    try {
-  	      root = parser(this._css, this._opts);
-  	    } catch (error) {
-  	      this.error = error;
-  	    }
-
-  	    if (this.error) {
-  	      throw this.error
-  	    } else {
-  	      this._root = root;
-  	      return root
-  	    }
-  	  }
-
-  	  get [Symbol.toStringTag]() {
-  	    return 'NoWorkResult'
-  	  }
   	}
 
   	noWorkResult = NoWorkResult;
@@ -17329,7 +17382,7 @@
 
   	class Processor {
   	  constructor(plugins = []) {
-  	    this.version = '8.5.1';
+  	    this.version = '8.5.8';
   	    this.plugins = this.normalize(plugins);
   	  }
 
@@ -17595,7 +17648,8 @@
   	  }
 
   	  let result = '';
-  	  // Used for hot swapping the result variable with an empty string in order to "capture" the text written to it.
+  	  // Used for hot swapping the result variable with an empty string
+  	  // in order to "capture" the text written to it.
   	  let tempResult = '';
 
   	  function Frame(tag, attribs) {
@@ -17604,6 +17658,7 @@
   	    this.attribs = attribs || {};
   	    this.tagPosition = result.length;
   	    this.text = ''; // Node inner text
+  	    this.openingTagLength = 0;
   	    this.mediaChildren = [];
 
   	    this.updateParentNodeText = function() {
@@ -17625,7 +17680,8 @@
   	  options.parser = Object.assign({}, htmlParserDefaults, options.parser);
 
   	  const tagAllowed = function (name) {
-  	    return options.allowedTags === false || (options.allowedTags || []).indexOf(name) > -1;
+  	    return options.allowedTags === false ||
+  	      (options.allowedTags || []).indexOf(name) > -1;
   	  };
 
   	  // vulnerableTags
@@ -17726,6 +17782,10 @@
 
   	  const parser = new htmlparser.Parser({
   	    onopentag: function(name, attribs) {
+  	      if (options.onOpenTag) {
+  	        options.onOpenTag(name, attribs);
+  	      }
+
   	      // If `enforceHtmlBoundary` is `true` and this has found the opening
   	      // `html` tag, reset the state.
   	      if (options.enforceHtmlBoundary && name === 'html') {
@@ -17775,7 +17835,6 @@
   	            skipTextDepth = 1;
   	          }
   	        }
-  	        skipMap[depth] = true;
   	      }
   	      depth++;
   	      if (skip) {
@@ -17786,7 +17845,7 @@
   	            if (options.textFilter) {
   	              result += options.textFilter(escaped, name);
   	            } else {
-  	              result += escapeHtml(frame.innerText);
+  	              result += escaped;
   	            }
   	            addedText = true;
   	          }
@@ -17803,7 +17862,15 @@
   	        }
   	      }
 
-  	      if (!allowedAttributesMap || has(allowedAttributesMap, name) || allowedAttributesMap['*']) {
+  	      const isBeingEscaped = skip && (options.disallowedTagsMode === 'escape' || options.disallowedTagsMode === 'recursiveEscape');
+  	      const shouldPreserveEscapedAttributes = isBeingEscaped &&
+  	        options.preserveEscapedAttributes;
+
+  	      if (shouldPreserveEscapedAttributes) {
+  	        each(attribs, function(value, a) {
+  	          result += ' ' + a + '="' + escapeHtml((value || ''), true) + '"';
+  	        });
+  	      } else if (!allowedAttributesMap || has(allowedAttributesMap, name) || allowedAttributesMap['*']) {
   	        each(attribs, function(value, a) {
   	          if (!VALID_HTML_ATTRIBUTE_NAME.test(a)) {
   	            // This prevents part of an attribute name in the output from being
@@ -17811,8 +17878,10 @@
   	            delete frame.attribs[a];
   	            return;
   	          }
-  	          // If the value is empty, check if the attribute is in the allowedEmptyAttributes array.
-  	          // If it is not in the allowedEmptyAttributes array, and it is a known non-boolean attribute, delete it
+  	          // If the value is empty, check if the attribute is
+  	          // in the allowedEmptyAttributes array.
+  	          // If it is not in the allowedEmptyAttributes array,
+  	          // and it is a known non-boolean attribute, delete it
   	          // List taken from https://html.spec.whatwg.org/multipage/indices.html#attributes-3
   	          if (value === '' && (!options.allowedEmptyAttributes.includes(a)) &&
   	            (options.nonBooleanAttributes.includes(a) || options.nonBooleanAttributes.includes('*'))) {
@@ -17823,9 +17892,11 @@
   	          // as necessary if there are specific values defined.
   	          let passedAllowedAttributesMapCheck = false;
   	          if (!allowedAttributesMap ||
-  	            (has(allowedAttributesMap, name) && allowedAttributesMap[name].indexOf(a) !== -1) ||
+  	            (has(allowedAttributesMap, name) &&
+  	              allowedAttributesMap[name].indexOf(a) !== -1) ||
   	            (allowedAttributesMap['*'] && allowedAttributesMap['*'].indexOf(a) !== -1) ||
-  	            (has(allowedAttributesGlobMap, name) && allowedAttributesGlobMap[name].test(a)) ||
+  	            (has(allowedAttributesGlobMap, name) &&
+  	              allowedAttributesGlobMap[name].test(a)) ||
   	            (allowedAttributesGlobMap['*'] && allowedAttributesGlobMap['*'].test(a))) {
   	            passedAllowedAttributesMapCheck = true;
   	          } else if (allowedAttributesMap && allowedAttributesMap[name]) {
@@ -17869,12 +17940,14 @@
   	                const parsed = parseUrl(value);
 
   	                if (options.allowedScriptHostnames || options.allowedScriptDomains) {
-  	                  const allowedHostname = (options.allowedScriptHostnames || []).find(function (hostname) {
-  	                    return hostname === parsed.url.hostname;
-  	                  });
-  	                  const allowedDomain = (options.allowedScriptDomains || []).find(function(domain) {
-  	                    return parsed.url.hostname === domain || parsed.url.hostname.endsWith(`.${domain}`);
-  	                  });
+  	                  const allowedHostname = (options.allowedScriptHostnames || [])
+  	                    .find(function (hostname) {
+  	                      return hostname === parsed.url.hostname;
+  	                    });
+  	                  const allowedDomain = (options.allowedScriptDomains || [])
+  	                    .find(function(domain) {
+  	                      return parsed.url.hostname === domain || parsed.url.hostname.endsWith(`.${domain}`);
+  	                    });
   	                  allowed = allowedHostname || allowedDomain;
   	                }
   	              } catch (e) {
@@ -17898,13 +17971,18 @@
   	                  allowed = has(options, 'allowIframeRelativeUrls')
   	                    ? options.allowIframeRelativeUrls
   	                    : (!options.allowedIframeHostnames && !options.allowedIframeDomains);
-  	                } else if (options.allowedIframeHostnames || options.allowedIframeDomains) {
-  	                  const allowedHostname = (options.allowedIframeHostnames || []).find(function (hostname) {
-  	                    return hostname === parsed.url.hostname;
-  	                  });
-  	                  const allowedDomain = (options.allowedIframeDomains || []).find(function(domain) {
-  	                    return parsed.url.hostname === domain || parsed.url.hostname.endsWith(`.${domain}`);
-  	                  });
+  	                } else if (
+  	                  options.allowedIframeHostnames ||
+  	                  options.allowedIframeDomains
+  	                ) {
+  	                  const allowedHostname = (options.allowedIframeHostnames || [])
+  	                    .find(function (hostname) {
+  	                      return hostname === parsed.url.hostname;
+  	                    });
+  	                  const allowedDomain = (options.allowedIframeDomains || [])
+  	                    .find(function(domain) {
+  	                      return parsed.url.hostname === domain || parsed.url.hostname.endsWith(`.${domain}`);
+  	                    });
   	                  allowed = allowedHostname || allowedDomain;
   	                }
   	              } catch (e) {
@@ -17958,9 +18036,17 @@
   	                  return t;
   	                });
   	              if (allowedSpecificClasses && allowedWildcardClasses) {
-  	                value = filterClasses(value, deepmerge(allowedSpecificClasses, allowedWildcardClasses), allowedClassesGlobs);
+  	                value = filterClasses(
+  	                  value,
+  	                  deepmerge(allowedSpecificClasses, allowedWildcardClasses),
+  	                  allowedClassesGlobs
+  	                );
   	              } else {
-  	                value = filterClasses(value, allowedSpecificClasses || allowedWildcardClasses, allowedClassesGlobs);
+  	                value = filterClasses(
+  	                  value,
+  	                  allowedSpecificClasses || allowedWildcardClasses,
+  	                  allowedClassesGlobs
+  	                );
   	              }
   	              if (!value.length) {
   	                delete frame.attribs[a];
@@ -17971,7 +18057,10 @@
   	              if (options.parseStyleAttributes) {
   	                try {
   	                  const abstractSyntaxTree = postcssParse(name + ' {' + value + '}', { map: false });
-  	                  const filteredAST = filterCss(abstractSyntaxTree, options.allowedStyles);
+  	                  const filteredAST = filterCss(
+  	                    abstractSyntaxTree,
+  	                    options.allowedStyles
+  	                  );
 
   	                  value = stringifyStyleAttributes(filteredAST);
 
@@ -18014,6 +18103,7 @@
   	        result = tempResult + escapeHtml(result);
   	        tempResult = '';
   	      }
+  	      frame.openingTagLength = result.length - frame.tagPosition;
   	    },
   	    ontext: function(text) {
   	      if (skipText) {
@@ -18036,11 +18126,11 @@
   	        // your concern, don't allow them. The same is essentially true for style tags
   	        // which have their own collection of XSS vectors.
   	        result += text;
-  	      } else {
+  	      } else if (!addedText) {
   	        const escaped = escapeHtml(text, false);
-  	        if (options.textFilter && !addedText) {
+  	        if (options.textFilter) {
   	          result += options.textFilter(escaped, tag);
-  	        } else if (!addedText) {
+  	        } else {
   	          result += escaped;
   	        }
   	      }
@@ -18050,6 +18140,9 @@
   	      }
   	    },
   	    onclosetag: function(name, isImplied) {
+  	      if (options.onCloseTag) {
+  	        options.onCloseTag(name, isImplied);
+  	      }
 
   	      if (skipText) {
   	        skipTextDepth--;
@@ -18091,9 +18184,22 @@
   	        delete transformMap[depth];
   	      }
 
-  	      if (options.exclusiveFilter && options.exclusiveFilter(frame)) {
-  	        result = result.substr(0, frame.tagPosition);
-  	        return;
+  	      if (options.exclusiveFilter) {
+  	        const filterResult = options.exclusiveFilter(frame);
+  	        if (filterResult === 'excludeTag') {
+  	          if (skip) {
+  	            // no longer escaping the tag since it's not added at all
+  	            result = tempResult;
+  	            tempResult = '';
+  	          }
+  	          // remove the opening tag from the result
+  	          result = result.substring(0, frame.tagPosition) +
+  	            result.substring(frame.tagPosition + frame.openingTagLength);
+  	          return;
+  	        } else if (filterResult) {
+  	          result = result.substring(0, frame.tagPosition);
+  	          return;
+  	        }
   	      }
 
   	      frame.updateParentNodeMediaChildren();
@@ -18122,6 +18228,16 @@
   	  }, options.parser);
   	  parser.write(html);
   	  parser.end();
+
+  	  if (options.disallowedTagsMode === 'escape' || options.disallowedTagsMode === 'recursiveEscape') {
+  	    const lastParsedIndex = parser.endIndex;
+  	    if (lastParsedIndex != null && lastParsedIndex >= 0 && lastParsedIndex < html.length) {
+  	      const unparsed = html.substring(lastParsedIndex);
+  	      result += escapeHtml(unparsed);
+  	    } else if ((lastParsedIndex == null || lastParsedIndex < 0) && html.length > 0 && result === '') {
+  	      result = escapeHtml(html);
+  	    }
+  	  }
 
   	  return result;
 
@@ -18233,8 +18349,10 @@
   	   * Modifies the abstractSyntaxTree object.
   	   *
   	   * @param {object} abstractSyntaxTree  - Object representation of CSS attributes.
-  	   * @property {array[Declaration]} abstractSyntaxTree.nodes[0] - Each object cointains prop and value key, i.e { prop: 'color', value: 'red' }.
-  	   * @param {object} allowedStyles       - Keys are properties (i.e color), value is list of permitted regex rules (i.e /green/i).
+  	   * @property {array[Declaration]} abstractSyntaxTree.nodes[0] -
+  	   * Each object contains prop and value key, i.e { prop: 'color', value: 'red' }.
+  	   * @param {object} allowedStyles       - Keys are properties (i.e color),
+  	   * value is list of permitted regex rules (i.e /green/i).
   	   * @return {object}                    - The modified tree.
   	   */
   	  function filterCss(abstractSyntaxTree, allowedStyles) {
@@ -18256,7 +18374,8 @@
   	    }
 
   	    if (selectedRule) {
-  	      abstractSyntaxTree.nodes[0].nodes = astRules.nodes.reduce(filterDeclarations(selectedRule), []);
+  	      abstractSyntaxTree.nodes[0].nodes = astRules.nodes
+  	        .reduce(filterDeclarations(selectedRule), []);
   	    }
 
   	    return abstractSyntaxTree;
@@ -18267,7 +18386,8 @@
   	   * values in the inline style attribute format.
   	   *
   	   * @param  {AbstractSyntaxTree} filteredAST
-  	   * @return {string}             - Example: "color:yellow;text-align:center !important;font-family:helvetica;"
+  	   * @return {string}             - Example:
+  	   * "color:yellow;text-align:center !important;font-family:helvetica;"
   	   */
   	  function stringifyStyleAttributes(filteredAST) {
   	    return filteredAST.nodes[0].nodes
@@ -18284,21 +18404,25 @@
   	    * Filters the existing attributes for the given property. Discards any attributes
   	    * which don't match the allowlist.
   	    *
-  	    * @param  {object} selectedRule             - Example: { color: red, font-family: helvetica }
-  	    * @param  {array} allowedDeclarationsList   - List of declarations which pass the allowlist.
-  	    * @param  {object} attributeObject          - Object representing the current css property.
-  	    * @property {string} attributeObject.type   - Typically 'declaration'.
-  	    * @property {string} attributeObject.prop   - The CSS property, i.e 'color'.
-  	    * @property {string} attributeObject.value  - The corresponding value to the css property, i.e 'red'.
-  	    * @return {function}                        - When used in Array.reduce, will return an array of Declaration objects
+  	    * @param  {object} selectedRule - Example: { color: red, font-family: helvetica }
+  	    * @param  {array} allowedDeclarationsList - List of declarations
+  	    * which pass the allowlist.
+  	    * @param  {object} attributeObject - Object representing the current css property.
+  	    * @property {string} attributeObject.type - Typically 'declaration'.
+  	    * @property {string} attributeObject.prop - The CSS property, i.e 'color'.
+  	    * @property {string} attributeObject.value - The corresponding value to
+  	    * the css property, i.e 'red'.
+  	    * @return {function} - When used in Array.reduce,
+  	    * will return an array of Declaration objects
   	    */
   	  function filterDeclarations(selectedRule) {
   	    return function (allowedDeclarationsList, attributeObject) {
   	      // If this property is allowlisted...
   	      if (has(selectedRule, attributeObject.prop)) {
-  	        const matchesRegex = selectedRule[attributeObject.prop].some(function(regularExpression) {
-  	          return regularExpression.test(attributeObject.value);
-  	        });
+  	        const matchesRegex = selectedRule[attributeObject.prop]
+  	          .some(function(regularExpression) {
+  	            return regularExpression.test(attributeObject.value);
+  	          });
 
   	        if (matchesRegex) {
   	          allowedDeclarationsList.push(attributeObject);
@@ -18339,7 +18463,7 @@
   	    'main', 'nav', 'section',
   	    // Text content
   	    'blockquote', 'dd', 'div', 'dl', 'dt', 'figcaption', 'figure',
-  	    'hr', 'li', 'main', 'ol', 'p', 'pre', 'ul',
+  	    'hr', 'li', 'menu', 'ol', 'p', 'pre', 'ul',
   	    // Inline text semantics
   	    'a', 'abbr', 'b', 'bdi', 'bdo', 'br', 'cite', 'code', 'data', 'dfn',
   	    'em', 'i', 'kbd', 'mark', 'q',
@@ -18410,7 +18534,8 @@
   	  allowedSchemesAppliedToAttributes: [ 'href', 'src', 'cite' ],
   	  allowProtocolRelative: true,
   	  enforceHtmlBoundary: false,
-  	  parseStyleAttributes: true
+  	  parseStyleAttributes: true,
+  	  preserveEscapedAttributes: false
   	};
 
   	sanitizeHtml.simpleTransform = function(newTagName, newAttribs, merge) {
@@ -18429,7 +18554,7 @@
 
   	    return {
   	      tagName: newTagName,
-  	      attribs: attribs
+  	      attribs
   	    };
   	  };
   	};

@@ -1,6 +1,6 @@
 {
   "name": "@tknghr/docsify-yaml-table",
-  "version": "0.5.5",
+  "version": "0.5.7",
   "description": "Docsify YAML table plugin",
   "main": "dist/docsify-yaml-table.min.js",
   "module": "src/index.js",
@@ -29,12 +29,12 @@
     "sanitize-html": "^2.12.1"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^28.0.2",
+    "@rollup/plugin-commonjs": "^29.0.2",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.0",
     "@rollup/plugin-terser": "^1.0.0",
     "install": "^0.13.0",
-    "jest": "^29.7.0",
+    "jest": "^30.2.0",
     "rollup": "^4.59.0",
     "rollup-plugin-polyfill-node": "^0.13.0"
   },
