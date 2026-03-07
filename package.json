@@ -39,6 +39,6 @@
     "rollup-plugin-polyfill-node": "^0.13.0"
   },
   "volta": {
-    "node": "20.10.0"
+    "node": "22.22.1"
   }
 }
