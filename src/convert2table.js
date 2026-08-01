@@ -1,12 +1,12 @@
 'use strict';
 
-import jsyaml from 'js-yaml'
+import { load } from 'js-yaml'
 import { parseTable } from './parse-table';
 
 export const convert2table = (yaml) => {
   let data;
   try {
-    data = jsyaml.load(yaml)
+    data = load(yaml)
   } catch (err) {
     console.error(err)
     return null
