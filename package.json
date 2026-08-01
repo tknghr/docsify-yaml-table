@@ -1,6 +1,6 @@
 {
   "name": "@tknghr/docsify-yaml-table",
-  "version": "0.5.8",
+  "version": "0.5.9",
   "description": "Docsify YAML table plugin",
   "main": "dist/docsify-yaml-table.min.js",
   "module": "src/index.js",
