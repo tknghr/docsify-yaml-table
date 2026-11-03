@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.11] - 2026-11-03
+
+### Security
+
+- Fix [CVE-2026-113657](https://github.com/advisories/GHSA-374f-7chj-9948)
+- Fix [CVE-2026-113661](https://github.com/advisories/GHSA-cv27-6wvh-8x7j)
+- Fix [CVE-2026-113654](https://github.com/advisories/GHSA-x3q4-9hxx-gx8m)
+
+### Changed
+
+- Upgrade dependencies: `@rollup/plugin-terser`, `jest`, `js-yaml`, `rollup`, `sanitize-html`
+
 ## [0.5.3] - 2024-03-20
 
 ### Security
