@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.5.12] - 2026-11-14
+
+### Security
+
+- Fix [CVE-2026-93749](https://github.com/advisories/GHSA-68fv-2mgg-jv7q)
+- Fix [CVE-2026-97711](https://github.com/advisories/GHSA-gfhx-hw2g-v5hg)
+- Fix [CVE-2026-115897](https://github.com/advisories/GHSA-m5mm-p8h7-m29v)
+- Fix [CVE-2026-118773](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4)
+- Fix [CVE-2026-118764](https://github.com/advisories/GHSA-g3hv-75wg-m249)
+
+### Changed
+
+- Upgrade dependencies: `sanitize-html`, `rollup`
+- Override transitive deps: `source-map-js`, `serialize-javascript`, `glob`, `minimatch`
+
 ## [0.5.11] - 2026-11-03
 
 ### Security
